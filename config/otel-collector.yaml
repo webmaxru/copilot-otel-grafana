@@ -1,0 +1,54 @@
+# OpenTelemetry Collector — enterprise / team variant.
+#
+# VS Code (Copilot OTel) -> this collector (OTLP :4318 / :4317)
+#   -> Grafana Tempo   (local, TraceQL dashboards for the platform team)
+#   -> Azure Application Insights (azuremonitor exporter, for org-wide APM + Managed Grafana)
+#
+# This is the "insert a Collector between the editor and the backend so you can fan out
+# to more than one destination" shape described in the article's "Why no collector" section.
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+processors:
+  # Small batches keep per-request overhead low without adding much latency in a demo.
+  batch:
+    timeout: 5s
+    send_batch_size: 512
+  # Tag every span so you can tell collector-forwarded telemetry apart downstream.
+  resource:
+    attributes:
+      - key: telemetry.pipeline
+        value: otel-collector
+        action: upsert
+
+exporters:
+  # Fan-out target 1: local Grafana Tempo (gRPC OTLP).
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+  # Fan-out target 2: Azure Application Insights.
+  # Connection string is injected from the APPLICATIONINSIGHTS_CONNECTION_STRING env var.
+  azuremonitor:
+    connection_string: ${env:APPLICATIONINSIGHTS_CONNECTION_STRING}
+    maxbatchsize: 100
+    maxbatchinterval: 10s
+  # Handy while wiring things up: prints a one-line summary of each batch to collector logs.
+  debug:
+    verbosity: normal
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [resource, batch]
+      exporters: [otlp/tempo, azuremonitor, debug]
+  telemetry:
+    logs:
+      level: info

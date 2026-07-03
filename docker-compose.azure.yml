@@ -1,0 +1,58 @@
+# Enterprise / team variant of the demo (see the article's "Why no collector" + "Scaling Up").
+#
+#   VS Code (Copilot OTel)  --OTLP :4318-->  OTel Collector  -->  Grafana Tempo (local)
+#                                                            \-->  Azure Application Insights
+#
+# Run this INSTEAD of docker-compose.yml (it reuses the same host ports):
+#   1. cp .env.example .env  and set APPLICATIONINSIGHTS_CONNECTION_STRING (see azure/setup-azure.ps1)
+#   2. docker compose -f docker-compose.yml down          # stop the local-only stack first
+#   3. docker compose -f docker-compose.azure.yml up -d
+#
+# VS Code settings stay identical — they still point at http://localhost:4318, which is now
+# the collector rather than Tempo directly.
+name: copilot-traces-azure
+
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.155.0
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes:
+      - ./config/otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+    environment:
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING}
+    ports:
+      - "4318:4318"   # OTLP HTTP receiver (what VS Code points at)
+      - "4317:4317"   # OTLP gRPC receiver
+    depends_on:
+      - tempo
+    restart: unless-stopped
+
+  tempo:
+    image: grafana/tempo:3.0.0
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./config/tempo.yaml:/etc/tempo.yaml:ro
+      - tempo-data:/var/tempo
+    ports:
+      - "3200:3200"   # Tempo query API (OTLP now arrives from the collector, not the host)
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:12.0.0
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+    volumes:
+      - ./config/grafana/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml:ro
+      - ./config/grafana/dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml:ro
+      - ./dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3001:3000"   # host 3000 was busy on this machine; Grafana UI => http://localhost:3001
+    depends_on:
+      - tempo
+    restart: unless-stopped
+
+volumes:
+  tempo-data:
