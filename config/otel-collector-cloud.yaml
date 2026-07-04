@@ -1,0 +1,50 @@
+# OpenTelemetry Collector — CLOUD variant for Option D (Azure Container Apps).
+#
+#   VS Code (Copilot OTel)  --OTLP/HTTP + Bearer token-->  this collector (on ACA, scale-to-zero)
+#                                                      -->  Azure Application Insights
+#
+# Nothing runs locally. The public ingress is protected by a shared bearer token
+# (VS Code sends it via OTEL_EXPORTER_OTLP_HEADERS=Authorization=Bearer <token>).
+#
+# Secrets are injected as env vars by the container app:
+#   INGEST_TOKEN                          - the shared bearer token clients must present
+#   APPLICATIONINSIGHTS_CONNECTION_STRING - App Insights sink
+
+extensions:
+  # Server-side authenticator: validates the incoming Authorization: Bearer <token> header.
+  bearertokenauth:
+    token: ${env:INGEST_TOKEN}
+
+receivers:
+  otlp:
+    protocols:
+      # Only HTTP is exposed — Azure Container Apps allows a single ingress port, and the
+      # Copilot client uses OTLP/HTTP (http/protobuf) by default.
+      http:
+        endpoint: 0.0.0.0:4318
+        auth:
+          authenticator: bearertokenauth
+
+processors:
+  batch:
+    timeout: 5s
+    send_batch_size: 512
+
+exporters:
+  azuremonitor:
+    connection_string: ${env:APPLICATIONINSIGHTS_CONNECTION_STRING}
+    maxbatchsize: 100
+    maxbatchinterval: 10s
+  debug:
+    verbosity: normal
+
+service:
+  extensions: [bearertokenauth]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [azuremonitor, debug]
+  telemetry:
+    logs:
+      level: info
