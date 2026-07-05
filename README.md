@@ -16,13 +16,13 @@ locally** - VS Code points its OTLP endpoint straight at the cloud.
 |--------|--------------|---------|--------------------|------|
 | **A - Local** | Docker: Tempo + Grafana | Grafana Tempo | Local Grafana `http://localhost:3001` (TraceQL) | $0 |
 | **B - Azure, local collector** | Docker: Collector + Tempo + Grafana | Application Insights (+ local Tempo) | Azure Monitor -> **Dashboards with Grafana** | ~$0 |
-| **C - Grafana Cloud** | Nothing | Grafana Cloud (managed Tempo) | Grafana Cloud | $0 (free tier) |
-| **D - Azure Container Apps** | Nothing | Application Insights | Azure Monitor -> **Dashboards with Grafana** | ~$0 (scale-to-zero) |
+| **C - Azure Container Apps** | Nothing | Application Insights | Azure Monitor -> **Dashboards with Grafana** | ~$0 (scale-to-zero) |
+| **D - Grafana Cloud** | Nothing | Grafana Cloud (managed Tempo) | Grafana Cloud | $0 (free tier) |
 
-> **None of these need a paid Grafana instance.** B and D view the official **GitHub Copilot**
+> **None of these need a paid Grafana instance.** B and C view the official **GitHub Copilot**
 > dashboard for free *inside the Azure portal* via
 > [Azure Monitor dashboards with Grafana](https://learn.microsoft.com/en-us/azure/azure-monitor/visualize/visualize-use-grafana-dashboards)
-> (same Grafana engine, $0 - versus ~$68/mo for Azure Managed Grafana). C uses Grafana Cloud's free tier.
+> (same Grafana engine, $0 - versus ~$68/mo for Azure Managed Grafana). D uses Grafana Cloud's free tier.
 
 See [Choosing an option](#choosing-an-option-detailed-trade-offs) below for a full comparison.
 
@@ -32,52 +32,52 @@ See [Choosing an option](#choosing-an-option-detailed-trade-offs) below for a fu
 
 ### Comparison matrix
 
-| Dimension | A - Local | B - Azure, local collector | C - Grafana Cloud | D - ACA collector |
+| Dimension | A - Local | B - Azure, local collector | C - ACA collector | D - Grafana Cloud |
 |-----------|-----------|----------------------------|-------------------|-------------------|
 | **Runs on your machine** | Docker: Tempo + Grafana | Docker: Collector + Tempo + Grafana | Nothing | Nothing |
-| **Managed in the cloud** | none | Application Insights | Grafana Cloud (everything) | ACA collector + Application Insights |
-| **Telemetry backend** | Grafana Tempo (local) | Tempo (local) + App Insights | Grafana Cloud Tempo | Application Insights |
-| **Query language** | TraceQL | TraceQL **and** KQL | TraceQL | KQL |
-| **Dashboard** | this repo's TraceQL | this repo's TraceQL + official **GitHub Copilot** | this repo's TraceQL (re-point data source) | official **GitHub Copilot** |
-| **Collector in path** (redaction / fan-out / buffering) | No | **Yes** (local) | No (direct) | **Yes** (cloud) |
-| **Auth on the wire** | none (localhost) | none (localhost) | Basic (instance ID + token) | Bearer token (public endpoint) |
-| **Where data lives** | your laptop only | laptop + your Azure region | Grafana Labs SaaS region | your Azure region |
-| **Cost** | $0 | ~$0 (App Insights 5 GB/mo free, then per-GB) | $0 free tier | ~$0 (ACA free grant + scale-to-zero; App Insights 5 GB/mo free) |
-| **Free-tier caps** | n/a | App Insights: 5 GB/mo, 90-day retention | 50 GB traces/mo, **14-day** retention, **3 users** | ACA: 180k vCPU-s + 360k GiB-s + 2M req/mo; App Insights 5 GB/mo, 90-day |
-| **Setup effort** | lowest (`docker compose up`) | medium (compose + `setup-azure.ps1`) | low (sign up + 3 env vars) | medium (`setup-azure.ps1` + `deploy-collector-aca.ps1`) |
-| **Cold start** | no | no | no | **yes** (first request after idle) |
+| **Managed in the cloud** | none | Application Insights | ACA collector + Application Insights | Grafana Cloud (everything) |
+| **Telemetry backend** | Grafana Tempo (local) | Tempo (local) + App Insights | Application Insights | Grafana Cloud Tempo |
+| **Query language** | TraceQL | TraceQL **and** KQL | KQL | TraceQL |
+| **Dashboard** | this repo's TraceQL | this repo's TraceQL + official **GitHub Copilot** | official **GitHub Copilot** | this repo's TraceQL (re-point data source) |
+| **Collector in path** (redaction / fan-out / buffering) | No | **Yes** (local) | **Yes** (cloud) | No (direct) |
+| **Auth on the wire** | none (localhost) | none (localhost) | Bearer token (public endpoint) | Basic (instance ID + token) |
+| **Where data lives** | your laptop only | laptop + your Azure region | your Azure region | Grafana Labs SaaS region |
+| **Cost** | $0 | ~$0 (App Insights 5 GB/mo free, then per-GB) | ~$0 (ACA free grant + scale-to-zero; App Insights 5 GB/mo free) | $0 free tier |
+| **Free-tier caps** | n/a | App Insights: 5 GB/mo, 90-day retention | ACA: 180k vCPU-s + 360k GiB-s + 2M req/mo; App Insights 5 GB/mo, 90-day | 50 GB traces/mo, **14-day** retention, **3 users** |
+| **Setup effort** | lowest (`docker compose up`) | medium (compose + `setup-azure.ps1`) | medium (`setup-azure.ps1` + `deploy-collector-aca.ps1`) | low (sign up + 3 env vars) |
+| **Cold start** | no | no | **yes** (first request after idle) | no |
 | **Works offline / no cloud account** | **Yes** | No | No | No |
 | **Team / fleet ready** | No (per machine) | No (per machine) | **Yes** (shared endpoint) | **Yes** (shared endpoint) |
 
 ### Cross-cutting trade-offs
 
-- **Collector vs. direct.** B and D put an OTel Collector in the path, which buys you three things
+- **Collector vs. direct.** B and C put an OTel Collector in the path, which buys you three things
   the direct paths lack: (1) **redaction/filtering** of attributes before they leave; (2) **fan-out**
   to more than one backend (B already sends to Tempo *and* App Insights); (3) **batching, retry, and
-  buffering** so a brief backend outage doesn't drop spans. C (direct to Grafana Cloud) is the
+  buffering** so a brief backend outage doesn't drop spans. D (direct to Grafana Cloud) is the
   simplest wiring but has none of these - if the endpoint is unreachable, spans are dropped, and
   whatever the editor emits goes straight to the SaaS.
-- **TraceQL vs. KQL.** A, C, and the local view of B use Grafana Tempo and **TraceQL** (this repo's
-  cache dashboard). B's Azure view and D use App Insights and **KQL** (the official *GitHub Copilot*
+- **TraceQL vs. KQL.** A, D, and the local view of B use Grafana Tempo and **TraceQL** (this repo's
+  cache dashboard). B's Azure view and C use App Insights and **KQL** (the official *GitHub Copilot*
   dashboard). B is the only option that gives you both at once.
-- **Data residency & compliance.** A keeps data on the laptop. B and D keep the cloud copy in **your
+- **Data residency & compliance.** A keeps data on the laptop. B and C keep the cloud copy in **your
   Azure region** (e.g. Sweden Central / Norway East) under your Azure RBAC - the better fit when
-  telemetry must stay in Azure/EEA. C sends data to **Grafana Labs' SaaS**, a third party, which may
+  telemetry must stay in Azure/EEA. D sends data to **Grafana Labs' SaaS**, a third party, which may
   matter for regulated workloads.
 - **Single developer vs. fleet.** A and B run per-machine (every dev runs Docker), so they're great
   for one person or a proof-of-concept but don't aggregate a team. To cover a fleet you need a
-  **shared endpoint** - exactly C (SaaS) or D (your cloud collector) - rolled out with **Intune**
-  environment variables (`OTEL_EXPORTER_OTLP_ENDPOINT` + `OTEL_EXPORTER_OTLP_HEADERS`).
-- **Security.** C and D send auth over the wire; D's endpoint is **public**, so treat the bearer
+  **shared endpoint** - exactly C (your cloud collector) or D (Grafana Cloud SaaS) - rolled out with
+  **Intune** environment variables (`OTEL_EXPORTER_OTLP_ENDPOINT` + `OTEL_EXPORTER_OTLP_HEADERS`).
+- **Security.** C and D send auth over the wire; C's endpoint is **public**, so treat the bearer
   token as a secret and, for production, add IP restrictions or Private Link. Keep `captureContent`
   **off** - it matters most for C/D, where content would land in a shared/third-party backend with
   no collector to scrub it.
-- **Reliability & latency.** Local paths (A/B) have the lowest latency and no cold start. D scales to
+- **Reliability & latency.** Local paths (A/B) have the lowest latency and no cold start. C scales to
   zero, so the first request after idle waits a few seconds while a replica spins up (subsequent
   requests are fast; the SDK batches and retries). C/D depend on network egress to the cloud.
-- **Cost, concretely.** All four avoid the ~$68/mo of Azure Managed Grafana. A is truly $0. B and D
-  ride Application Insights' 5 GB/month free grant (a demo ingests far less); D adds an ACA app that
-  bills only while a replica runs and is covered by ACA's monthly free grant. C is free until you hit
+- **Cost, concretely.** All four avoid the ~$68/mo of Azure Managed Grafana. A is truly $0. B and C
+  ride Application Insights' 5 GB/month free grant (a demo ingests far less); C adds an ACA app that
+  bills only while a replica runs and is covered by ACA's monthly free grant. D is free until you hit
   50 GB traces/month, 14-day retention, or 3 users - after which Grafana Cloud Pro applies.
 
 ### When to pick each
@@ -87,12 +87,12 @@ See [Choosing an option](#choosing-an-option-detailed-trade-offs) below for a fu
 - **B - Azure, local collector.** You want *both* the local TraceQL cache dashboard and the official
   Azure GitHub Copilot dashboard, with a collector for redaction/fan-out, and data in your Azure
   tenant - a great single-machine evaluation before a fleet rollout. Downside: still runs Docker locally.
-- **C - Grafana Cloud.** A Grafana-Cloud shop or small team that wants **nothing to run** and the
-  fastest path to a hosted dashboard. Downside: third-party data residency and free-tier caps
-  (50 GB / 14 days / 3 users), no collector in the path.
-- **D - Azure Container Apps collector.** An Azure org that wants a **fleet-ready, nothing-local**
+- **C - Azure Container Apps collector.** An Azure org that wants a **fleet-ready, nothing-local**
   setup with data staying in Azure, the official dashboard, a collector in the path, and ~$0 idle
   cost (scale-to-zero). Downside: you operate a public endpoint + token, and there's a cold start.
+- **D - Grafana Cloud.** A Grafana-Cloud shop or small team that wants **nothing to run** and the
+  fastest path to a hosted dashboard. Downside: third-party data residency and free-tier caps
+  (50 GB / 14 days / 3 users), no collector in the path.
 
 ---
 
@@ -281,46 +281,7 @@ schema the official dashboard queries.
 
 ---
 
-## Option C - Grafana Cloud (nothing runs locally, $0)
-
-Point VS Code straight at Grafana Cloud's managed OTLP endpoint. No Docker, no collector, no Azure -
-traces go to Grafana Cloud's managed Tempo and you use TraceQL there.
-
-```mermaid
-flowchart LR
-    VS["VS Code (Copilot OTel)"] -->|OTLP/HTTP + Basic auth| GC["Grafana Cloud<br/>(managed Tempo + Grafana)"]
-```
-
-### 1. Create a free Grafana Cloud stack
-
-Sign up at [grafana.com](https://grafana.com/) (free tier). In your stack, open the
-**OpenTelemetry (OTLP)** connection page and note:
-
-- the **OTLP endpoint**, e.g. `https://otlp-gateway-<zone>.grafana.net/otlp`
-- your **Instance ID** (a number) and an **API token** (with OTLP / MetricsPublisher scope).
-
-### 2. Set VS Code environment variables
-
-Grafana Cloud uses HTTP Basic auth - the header value is `Basic base64("<instanceID>:<token>")`:
-
-```powershell
-$b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("<instanceID>:<token>"))
-setx OTEL_EXPORTER_OTLP_ENDPOINT "https://otlp-gateway-<zone>.grafana.net/otlp"
-setx OTEL_EXPORTER_OTLP_HEADERS  "Authorization=Basic $b64"
-setx COPILOT_OTEL_ENABLED        "true"
-```
-
-Restart VS Code, then use Copilot Chat.
-
-### 3. View
-
-In Grafana Cloud, open **Explore -> your Traces (Tempo) data source** and run the same TraceQL, e.g.
-`{ span.gen_ai.usage.cache_read.input_tokens > 0 }`. To reuse the prebuilt dashboard, import
-`dashboards/copilot-prompt-cache.json` and re-point its data source to your Grafana Cloud Tempo.
-
----
-
-## Option D - Azure Container Apps collector (nothing runs locally, scale-to-zero)
+## Option C - Azure Container Apps collector (nothing runs locally, scale-to-zero)
 
 Run the OTel Collector in the cloud on **Azure Container Apps** (Consumption plan, `minReplicas: 0`),
 exposing a public, token-protected OTLP endpoint that forwards to Application Insights. Nothing runs
@@ -387,6 +348,45 @@ Or remove everything: `./azure/teardown-azure.ps1 -ResourceGroup rg-ghcp-otel`.
 
 ---
 
+## Option D - Grafana Cloud (nothing runs locally, $0)
+
+Point VS Code straight at Grafana Cloud's managed OTLP endpoint. No Docker, no collector, no Azure -
+traces go to Grafana Cloud's managed Tempo and you use TraceQL there.
+
+```mermaid
+flowchart LR
+    VS["VS Code (Copilot OTel)"] -->|OTLP/HTTP + Basic auth| GC["Grafana Cloud<br/>(managed Tempo + Grafana)"]
+```
+
+### 1. Create a free Grafana Cloud stack
+
+Sign up at [grafana.com](https://grafana.com/) (free tier). In your stack, open the
+**OpenTelemetry (OTLP)** connection page and note:
+
+- the **OTLP endpoint**, e.g. `https://otlp-gateway-<zone>.grafana.net/otlp`
+- your **Instance ID** (a number) and an **API token** (with OTLP / MetricsPublisher scope).
+
+### 2. Set VS Code environment variables
+
+Grafana Cloud uses HTTP Basic auth - the header value is `Basic base64("<instanceID>:<token>")`:
+
+```powershell
+$b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("<instanceID>:<token>"))
+setx OTEL_EXPORTER_OTLP_ENDPOINT "https://otlp-gateway-<zone>.grafana.net/otlp"
+setx OTEL_EXPORTER_OTLP_HEADERS  "Authorization=Basic $b64"
+setx COPILOT_OTEL_ENABLED        "true"
+```
+
+Restart VS Code, then use Copilot Chat.
+
+### 3. View
+
+In Grafana Cloud, open **Explore -> your Traces (Tempo) data source** and run the same TraceQL, e.g.
+`{ span.gen_ai.usage.cache_read.input_tokens > 0 }`. To reuse the prebuilt dashboard, import
+`dashboards/copilot-prompt-cache.json` and re-point its data source to your Grafana Cloud Tempo.
+
+---
+
 ## Repository layout
 
 | Path | Purpose |
@@ -396,10 +396,10 @@ Or remove everything: `./azure/teardown-azure.ps1 -ResourceGroup rg-ghcp-otel`.
 | `config/tempo.yaml` | Tempo: OTLP receivers, local storage, TraceQL-metrics generator |
 | `config/grafana/*.yaml` | Grafana provisioning (Tempo data source + dashboard) |
 | `config/otel-collector.yaml` | **Option B** collector: OTLP in -> `otlp/tempo` + `azuremonitor` |
-| `config/otel-collector-cloud.yaml` | **Option D** collector: OTLP + bearer auth -> `azuremonitor` |
+| `config/otel-collector-cloud.yaml` | **Option C** collector: OTLP + bearer auth -> `azuremonitor` |
 | `dashboards/copilot-prompt-cache.json` | The local TraceQL cache/usage dashboard |
 | `azure/setup-azure.ps1` | Provisions Log Analytics + Application Insights, writes `.env` |
-| `azure/deploy-collector-aca.ps1` | **Option D** - deploy the collector to Azure Container Apps |
+| `azure/deploy-collector-aca.ps1` | **Option C** - deploy the collector to Azure Container Apps |
 | `azure/teardown-azure.ps1` | Deletes the resource group |
 | `.env.example` | Template for `APPLICATIONINSIGHTS_CONNECTION_STRING` (copy to `.env`) |
 
@@ -418,8 +418,8 @@ push the config as **managed settings via Microsoft Intune** so it isn't opt-in:
 - Original concept, local Docker stack, and dashboard by **Samuel Tauil** -
   [samueltauil/copilot-traces](https://github.com/samueltauil/copilot-traces) and the article
   [Visualizing Copilot Prompt Cache with OTel + Grafana](https://samueltauil.github.io/github-copilot/devops/2026/07/02/visualizing-copilot-prompt-cache-otel-grafana.html).
-- This fork adds the free **Azure Monitor "Dashboards with Grafana"** variant (Option B), a
-  **Grafana Cloud** direct path (Option C), and an **Azure Container Apps** scale-to-zero collector
+- This fork adds the free **Azure Monitor "Dashboards with Grafana"** variant (Option B), an
+  **Azure Container Apps** scale-to-zero collector (Option C), and a **Grafana Cloud** direct path
   (Option D) - none requiring a paid Grafana instance.
 - Licensed under [MIT](LICENSE).
 
