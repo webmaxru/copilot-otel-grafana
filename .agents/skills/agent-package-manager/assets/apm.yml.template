@@ -1,0 +1,32 @@
+name: my-project
+version: 1.0.0
+description: Shared AI-native project setup
+author: Team Name
+target: all
+type: hybrid
+
+scripts:
+  review: codex review.prompt.md
+
+dependencies:
+  apm:
+    # Full package (rules, skills, prompts, hooks, agents)
+    - microsoft/apm-sample-package
+    # Single skill by subdirectory path
+    - anthropics/skills/skills/frontend-design
+    # Plugin with a pinned tag
+    - github/awesome-copilot/plugins/context-engineering#v2.1
+    # Individual agent file
+    - github/awesome-copilot/agents/api-architect.agent.md
+  mcp:
+    - io.github.github/github-mcp-server
+
+compilation:
+  target: all
+  strategy: distributed
+  resolve_links: true
+  exclude:
+    - apm_modules/**
+    - node_modules/**
+    - dist/**
+    - build/**

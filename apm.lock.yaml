@@ -1,0 +1,82 @@
+lockfile_version: '1'
+generated_at: '2026-07-05T21:20:46.198340+00:00'
+apm_version: 0.23.1
+dependencies:
+- repo_url: anthropics/skills
+  name: frontend-design
+  host: github.com
+  resolved_commit: 9d2f1ae187231d8199c64b5b762e1bdf2244733d
+  version: 1.0.0
+  virtual_path: skills/frontend-design
+  is_virtual: true
+  package_type: claude_skill
+  deployed_files:
+  - .agents/skills/frontend-design
+  - .agents/skills/frontend-design/LICENSE.txt
+  - .agents/skills/frontend-design/SKILL.md
+  deployed_file_hashes:
+    .agents/skills/frontend-design/LICENSE.txt: sha256:0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594
+    .agents/skills/frontend-design/SKILL.md: sha256:1608ea77fbb6fc30d13a97d12cfa8ebf31358d40f0dd97beed24829d6b3f45dd
+  content_hash: sha256:4eabc66183767153e404b39d1b839b1c37f2d82d86f0a0d7e880a579d8d62336
+- repo_url: rysweet/amplihack-rs
+  name: storytelling-synthesizer
+  host: github.com
+  resolved_commit: b123c107c7ab2e3d436926747c135e78a90545b6
+  resolved_ref: b123c107c7ab2e3d436926747c135e78a90545b6
+  version: 1.0.0
+  virtual_path: amplifier-bundle/skills/storytelling-synthesizer
+  is_virtual: true
+  package_type: claude_skill
+  deployed_files:
+  - .agents/skills/storytelling-synthesizer
+  - .agents/skills/storytelling-synthesizer/QUICK_REFERENCE.md
+  - .agents/skills/storytelling-synthesizer/README.md
+  - .agents/skills/storytelling-synthesizer/SKILL.md
+  - .agents/skills/storytelling-synthesizer/examples/blog-post-example.md
+  - .agents/skills/storytelling-synthesizer/examples/demo-script-example.md
+  - .agents/skills/storytelling-synthesizer/examples/marketing-example.md
+  - .agents/skills/storytelling-synthesizer/examples/presentation-example.md
+  deployed_file_hashes:
+    .agents/skills/storytelling-synthesizer/QUICK_REFERENCE.md: sha256:b22d197d10f2b86264fe452b322373058a7fa56dd3e20857c8adbf0a8edf0e7c
+    .agents/skills/storytelling-synthesizer/README.md: sha256:558060720953bc7612f427bf922657cf249926ed9a1a3ea78255139d0c40d3a2
+    .agents/skills/storytelling-synthesizer/SKILL.md: sha256:d3132f42f3f6884c93cada728c98382f3a82262cb97a3c535821031b1a628640
+    .agents/skills/storytelling-synthesizer/examples/blog-post-example.md: sha256:61dbdf4780bd51f6e68af0ad5221960166b6443fd90f2a1f7a04d1faa936c6a3
+    .agents/skills/storytelling-synthesizer/examples/demo-script-example.md: sha256:57092c3aa21d445fd2258ed3cd85968461d68dda157c38d9357e177c9f996f8b
+    .agents/skills/storytelling-synthesizer/examples/marketing-example.md: sha256:325a2a9bd07a6935c393685d2a86b9fd67b78fec5ff18ed6c1a483562b3d4b24
+    .agents/skills/storytelling-synthesizer/examples/presentation-example.md: sha256:878b1a7aa3bf15816a0de2d2b18ef4c036747682b5286e84e92b7d20c8e662a5
+  content_hash: sha256:4c56c009df2a462fb0f7697c6e0369434f2d605ab57b79d6587b01020dfceef6
+- repo_url: webmaxru/ai-native-dev
+  name: ai-native-dev-seo-and-agent-readiness
+  host: github.com
+  resolved_commit: 8deedfd0f133de32f43d8e4171ac2e5ef38cff51
+  resolved_ref: main
+  version: 1.0.0
+  virtual_path: prompts/seo-and-agent-readiness.prompt.md
+  is_virtual: true
+  deployed_files:
+  - .github/prompts/seo-and-agent-readiness.prompt.md
+  deployed_file_hashes:
+    .github/prompts/seo-and-agent-readiness.prompt.md: sha256:4bcaebc8aba4d22b78a3eaf938a377e42794c43cfd67934e8c7614107d752148
+  content_hash: sha256:99eeca3b1d7f2b3ea961562c65f9b693370ba5f48c79341c655f5c0617509cce
+- repo_url: webmaxru/ai-native-dev
+  name: agent-package-manager
+  host: github.com
+  resolved_commit: 8deedfd0f133de32f43d8e4171ac2e5ef38cff51
+  version: 1.0.0
+  virtual_path: skills/agent-package-manager
+  is_virtual: true
+  package_type: claude_skill
+  deployed_files:
+  - .agents/skills/agent-package-manager
+  - .agents/skills/agent-package-manager/SKILL.md
+  - .agents/skills/agent-package-manager/assets/apm.yml.template
+  - .agents/skills/agent-package-manager/references/command-workflows.md
+  - .agents/skills/agent-package-manager/references/manifest-and-lockfile.md
+  - .agents/skills/agent-package-manager/references/troubleshooting.md
+  deployed_file_hashes:
+    .agents/skills/agent-package-manager/SKILL.md: sha256:2aca5d8bb60bd5d3fbcd98d2fd036b1f0aa0caf9bb4a4e7eb7e749473f093618
+    .agents/skills/agent-package-manager/assets/apm.yml.template: sha256:bdb996550d9bb66228d642ab7d8acc30f671605a911f8360356c8816cec96b8c
+    .agents/skills/agent-package-manager/references/command-workflows.md: sha256:1786ff6e657c5c163313b3f5e4367209c44eb3e4a601245e38169e88364c256d
+    .agents/skills/agent-package-manager/references/manifest-and-lockfile.md: sha256:751ba3102a04626d96cdfd0400308704e344fc7d30f9817aefc1308e0be986c8
+    .agents/skills/agent-package-manager/references/troubleshooting.md: sha256:f57abc15c6c6bca5cf6f3fee02690aa68f2859fa4c58e5c8241c4e33b35e8f5f
+  content_hash: sha256:6338d1772fe1fedfca979da05d61c8e74d33b1dccde1ae13a66e0308eaa9b788

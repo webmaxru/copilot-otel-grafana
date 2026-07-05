@@ -3,9 +3,5 @@ tempo-data/
 .env.aca
 
 
-# Local agent tooling (APM) - not part of this demo repo
+# APM dependencies
 apm_modules/
-.agents/
-apm.yml
-apm.lock.yaml
-.github/prompts/
