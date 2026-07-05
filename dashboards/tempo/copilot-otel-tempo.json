@@ -1,0 +1,150 @@
+{
+  "annotations": { "list": [] },
+  "description": "GitHub Copilot OpenTelemetry traces across ALL surfaces (VS Code + Copilot CLI). Prompt-cache hit/miss, token usage, model performance, and tool calls, powered by Grafana Tempo TraceQL metrics. Use the 'Copilot surface' selector to view VS Code, the CLI, or both.",
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [
+    { "icon": "external link", "targetBlank": true, "title": "VS Code OTel docs", "type": "link", "url": "https://code.visualstudio.com/docs/agents/guides/monitoring-agents" },
+    { "icon": "external link", "targetBlank": true, "title": "Copilot CLI OTel docs", "type": "link", "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference#opentelemetry-monitoring" }
+  ],
+  "templating": {
+    "list": [
+      {
+        "type": "datasource",
+        "name": "datasource",
+        "label": "Tempo data source",
+        "query": "tempo",
+        "refresh": 1,
+        "hide": 0,
+        "current": {},
+        "regex": ""
+      },
+      {
+        "type": "custom",
+        "name": "surface",
+        "label": "Copilot surface",
+        "description": "Filter by GitHub Copilot surface (matched on resource.service.name).",
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "query": "All surfaces : copilot-chat|github-copilot, VS Code (copilot-chat) : copilot-chat, Copilot CLI (github-copilot) : github-copilot",
+        "current": { "text": "All surfaces", "value": "copilot-chat|github-copilot" },
+        "options": [
+          { "text": "All surfaces", "value": "copilot-chat|github-copilot", "selected": true },
+          { "text": "VS Code (copilot-chat)", "value": "copilot-chat", "selected": false },
+          { "text": "Copilot CLI (github-copilot)", "value": "github-copilot", "selected": false }
+        ]
+      }
+    ]
+  },
+  "panels": [
+    { "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }, "id": 100, "title": "Summary — surface: $surface", "type": "row" },
+    {
+      "title": "Total LLM Calls", "type": "stat", "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 }, "id": 1,
+      "datasource": { "type": "tempo", "uid": "${datasource}" },
+      "targets": [{ "datasource": { "type": "tempo", "uid": "${datasource}" }, "queryType": "traceql", "query": "{ span.gen_ai.operation.name = \"chat\" && resource.service.name =~ \"$surface\" } | count_over_time()", "refId": "A" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "blue", "value": null }] } } },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["sum"] } }
+    },
+    {
+      "title": "Cache Read Tokens (Hits)", "type": "stat", "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 }, "id": 2,
+      "datasource": { "type": "tempo", "uid": "${datasource}" },
+      "targets": [{ "datasource": { "type": "tempo", "uid": "${datasource}" }, "queryType": "traceql", "query": "{ span.gen_ai.usage.cache_read.input_tokens > 0 && resource.service.name =~ \"$surface\" } | count_over_time()", "refId": "A" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "green", "value": null }] } } },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["sum"] } }
+    },
+    {
+      "title": "Cache Creation Tokens (Misses)", "type": "stat", "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 }, "id": 3,
+      "datasource": { "type": "tempo", "uid": "${datasource}" },
+      "targets": [{ "datasource": { "type": "tempo", "uid": "${datasource}" }, "queryType": "traceql", "query": "{ span.gen_ai.usage.cache_creation.input_tokens > 0 && resource.service.name =~ \"$surface\" } | count_over_time()", "refId": "A" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "orange", "value": null }] } } },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["sum"] } }
+    },
+    {
+      "title": "Tool Calls", "type": "stat", "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 }, "id": 4,
+      "datasource": { "type": "tempo", "uid": "${datasource}" },
+      "targets": [{ "datasource": { "type": "tempo", "uid": "${datasource}" }, "queryType": "traceql", "query": "{ span.gen_ai.operation.name = \"execute_tool\" && resource.service.name =~ \"$surface\" } | count_over_time()", "refId": "A" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "purple", "value": null }] } } },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["sum"] } }
+    },
+    { "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 }, "id": 101, "title": "Surfaces & cache", "type": "row" },
+    {
+      "title": "LLM Calls by Surface", "description": "chat spans split by resource.service.name — copilot-chat (VS Code) vs github-copilot (CLI).",
+      "type": "timeseries", "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 }, "id": 5,
+      "datasource": { "type": "tempo", "uid": "${datasource}" },
+      "targets": [{ "datasource": { "type": "tempo", "uid": "${datasource}" }, "queryType": "traceql", "query": "{ span.gen_ai.operation.name = \"chat\" && resource.service.name =~ \"$surface\" } | count_over_time() by (resource.service.name)", "refId": "A" }],
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 80, "stacking": { "mode": "normal" } } } },
+      "options": { "legend": { "displayMode": "table", "calcs": ["sum"], "placement": "bottom" } }
+    },
+    {
+      "title": "Cache Hit vs Miss Over Time", "description": "Green = cache reads (savings), Orange = cache creations (new entries).",
+      "type": "timeseries", "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 }, "id": 6,
+      "datasource": { "type": "tempo", "uid": "${datasource}" },
+      "targets": [
+        { "datasource": { "type": "tempo", "uid": "${datasource}" }, "queryType": "traceql", "query": "{ span.gen_ai.usage.cache_read.input_tokens > 0 && resource.service.name =~ \"$surface\" } | count_over_time()", "refId": "hits" },
+        { "datasource": { "type": "tempo", "uid": "${datasource}" }, "queryType": "traceql", "query": "{ span.gen_ai.usage.cache_creation.input_tokens > 0 && resource.service.name =~ \"$surface\" } | count_over_time()", "refId": "misses" }
+      ],
+      "fieldConfig": {
+        "defaults": { "custom": { "drawStyle": "line", "fillOpacity": 30, "lineWidth": 2 } },
+        "overrides": [
+          { "matcher": { "id": "byRegexp", "options": ".*hits.*" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byRegexp", "options": ".*misses.*" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "table", "calcs": ["sum"], "placement": "bottom" } }
+    },
+    { "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 }, "id": 102, "title": "Model performance", "type": "row" },
+    {
+      "title": "Calls by Model", "type": "timeseries", "gridPos": { "h": 8, "w": 12, "x": 0, "y": 15 }, "id": 7,
+      "datasource": { "type": "tempo", "uid": "${datasource}" },
+      "targets": [{ "datasource": { "type": "tempo", "uid": "${datasource}" }, "queryType": "traceql", "query": "{ span.gen_ai.operation.name = \"chat\" && resource.service.name =~ \"$surface\" } | count_over_time() by (span.gen_ai.request.model)", "refId": "A" }],
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 80, "stacking": { "mode": "normal" } } } },
+      "options": { "legend": { "displayMode": "table", "calcs": ["sum"], "placement": "bottom" } }
+    },
+    {
+      "title": "p50 Response Duration by Model", "type": "timeseries", "gridPos": { "h": 8, "w": 12, "x": 12, "y": 15 }, "id": 8,
+      "datasource": { "type": "tempo", "uid": "${datasource}" },
+      "targets": [{ "datasource": { "type": "tempo", "uid": "${datasource}" }, "queryType": "traceql", "query": "{ span.gen_ai.operation.name = \"chat\" && resource.service.name =~ \"$surface\" } | quantile_over_time(duration, 0.5) by (span.gen_ai.request.model)", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "ns", "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 } } },
+      "options": { "legend": { "displayMode": "table", "calcs": ["mean"], "placement": "bottom" } }
+    },
+    { "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 }, "id": 103, "title": "Tool usage", "type": "row" },
+    {
+      "title": "Top Tools", "type": "timeseries", "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 }, "id": 9,
+      "datasource": { "type": "tempo", "uid": "${datasource}" },
+      "targets": [{ "datasource": { "type": "tempo", "uid": "${datasource}" }, "queryType": "traceql", "query": "{ span.gen_ai.operation.name = \"execute_tool\" && resource.service.name =~ \"$surface\" } | count_over_time() by (span.gen_ai.tool.name)", "refId": "A" }],
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 80, "stacking": { "mode": "normal" } } } },
+      "options": { "legend": { "displayMode": "table", "calcs": ["sum"], "placement": "bottom" } }
+    },
+    {
+      "title": "p50 Tool Duration", "type": "timeseries", "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 }, "id": 10,
+      "datasource": { "type": "tempo", "uid": "${datasource}" },
+      "targets": [{ "datasource": { "type": "tempo", "uid": "${datasource}" }, "queryType": "traceql", "query": "{ span.gen_ai.operation.name = \"execute_tool\" && resource.service.name =~ \"$surface\" } | quantile_over_time(duration, 0.5) by (span.gen_ai.tool.name)", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "ns", "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 } } },
+      "options": { "legend": { "displayMode": "table", "calcs": ["mean"], "placement": "bottom" } }
+    },
+    { "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 32 }, "id": 104, "title": "Trace details", "type": "row" },
+    {
+      "title": "Recent LLM Calls (with surface & cache info)", "type": "table", "gridPos": { "h": 10, "w": 24, "x": 0, "y": 33 }, "id": 11,
+      "datasource": { "type": "tempo", "uid": "${datasource}" },
+      "targets": [{ "datasource": { "type": "tempo", "uid": "${datasource}" }, "queryType": "traceql", "query": "{ span.gen_ai.operation.name = \"chat\" && resource.service.name =~ \"$surface\" }", "limit": 50, "tableType": "spans", "refId": "A" }],
+      "options": { "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Start time" }] }
+    },
+    { "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 43 }, "id": 105, "title": "Reference", "type": "row" },
+    {
+      "title": "Surfaces, selector & TraceQL", "type": "text", "gridPos": { "h": 9, "w": 24, "x": 0, "y": 44 }, "id": 12,
+      "options": {
+        "mode": "markdown",
+        "content": "## GitHub Copilot surfaces\n\n| Surface | `resource.service.name` | Enable via |\n|---------|-------------------------|-----------|\n| VS Code Copilot Chat | `copilot-chat` | `github.copilot.chat.otel.*` settings **or** `OTEL_*` env vars |\n| GitHub Copilot CLI | `github-copilot` | `OTEL_*` env vars (`COPILOT_OTEL_ENABLED=true`) |\n\nThe **Copilot surface** selector maps to a regex on `resource.service.name`: *All surfaces* = `copilot-chat|github-copilot`, *VS Code* = `copilot-chat`, *Copilot CLI* = `github-copilot`.\n\n## Explore queries (Explore → Tempo)\n\n| Query | Description |\n|-------|-------------|\n| `{ resource.service.name =~ \"copilot-chat\\|github-copilot\" }` | All Copilot surfaces |\n| `{ span.gen_ai.usage.cache_read.input_tokens > 0 }` | Cache hits (any surface) |\n| `{ span.gen_ai.operation.name = \"chat\" } \\| count_over_time() by (resource.service.name)` | Calls per surface |\n| `{ span.gen_ai.operation.name = \"chat\" } \\| count_over_time() by (span.gen_ai.request.model)` | Calls per model |\n\nBoth surfaces follow the OTel GenAI semantic conventions, so the same `gen_ai.*` attributes work across VS Code and the CLI."
+      }
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["copilot", "opentelemetry", "github-copilot", "vscode", "copilot-cli", "caching"],
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "GitHub Copilot OTel — All Surfaces (Tempo / TraceQL)",
+  "uid": "copilot-otel-tempo",
+  "version": 1
+}

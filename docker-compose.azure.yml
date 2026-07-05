@@ -47,7 +47,7 @@ services:
     volumes:
       - ./config/grafana/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml:ro
       - ./config/grafana/dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml:ro
-      - ./dashboards:/var/lib/grafana/dashboards:ro
+      - ./dashboards/tempo:/var/lib/grafana/dashboards:ro
     ports:
       - "3001:3000"   # host 3000 was busy on this machine; Grafana UI => http://localhost:3001
     depends_on:

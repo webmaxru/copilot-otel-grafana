@@ -1,34 +1,59 @@
-# Visualize GitHub Copilot Prompt Caching with OpenTelemetry + Grafana
+# OpenTelemetry for GitHub Copilot — all surfaces (VS Code + CLI)
 
-See, per developer and per prompt shape, how often GitHub Copilot **reads from the prompt cache**
-(a cache *hit* -> faster, cheaper, more stable) versus **rebuilds it** (a cache *miss*). Recent
-VS Code versions emit OpenTelemetry traces for Copilot Chat using the GenAI semantic conventions;
-this repo turns those traces into dashboards.
+A hands-on experiment and reference implementation for wiring **OpenTelemetry** through **every
+GitHub Copilot surface that emits it** — today that's **VS Code Copilot Chat** and the **GitHub
+Copilot CLI** — and visualizing the result in Grafana. It's built to be the working foundation for a
+longread article: each backend is a self-contained, reproducible setup, and the dashboards are
+surface-aware so you can compare VS Code vs the CLI (or look at both together).
+
+The running theme is **prompt-cache efficiency** — how often Copilot reads from the prompt cache
+(a *hit*: faster, cheaper, more stable) versus rebuilds it (a *miss*) — plus token usage, model mix,
+tool calls, and latency. All of it comes from the OTel [GenAI semantic conventions](https://github.com/open-telemetry/semantic-conventions/blob/main/docs/gen-ai/),
+so the same queries work for both surfaces and any OTel-compatible backend.
 
 ![Copilot Prompt Cache Dashboard](docs/dashboard.png)
 
-## Four ways to run it
+---
 
-Pick what fits. **A and B** run a collector/Tempo on your machine. **C and D** run **nothing
-locally** - VS Code points its OTLP endpoint straight at the cloud.
+## The two axes: surfaces × backends
+
+This repo is organized around two independent choices.
+
+### 1. Surfaces — *what* is emitting telemetry
+
+| Surface | `resource.service.name` | Signals | How to enable |
+|---------|-------------------------|---------|---------------|
+| **VS Code Copilot Chat** | `copilot-chat` | traces, metrics, events | `github.copilot.chat.otel.*` settings **or** `OTEL_*` env vars |
+| **GitHub Copilot CLI** | `github-copilot` | traces, metrics | `OTEL_*` env vars (`COPILOT_OTEL_ENABLED=true`) |
+
+Both surfaces follow the **same GenAI conventions** — identical `gen_ai.*` attributes
+(`operation.name`, `request.model`, `usage.cache_read.input_tokens`, ...). They differ only in
+`resource.service.name`, which is exactly what the dashboards use as a **surface selector**
+(`All` / `VS Code` / `Copilot CLI`). Keep `OTEL_SERVICE_NAME` **unset** so each surface keeps its
+distinct default name.
+
+> Other Copilot surfaces (JetBrains, Visual Studio, Xcode, ...) don't emit OTel today. When they do,
+> they'll slot into the same model: a new `service.name` and a new option in the surface selector.
+
+### 2. Backends — *where* the telemetry goes
 
 | Option | Runs locally | Backend | View dashboards in | Cost |
 |--------|--------------|---------|--------------------|------|
 | **A - Local** | Docker: Tempo + Grafana | Grafana Tempo | Local Grafana `http://localhost:3001` (TraceQL) | $0 |
-| **B - Azure, local collector** | Docker: Collector + Tempo + Grafana | Application Insights (+ local Tempo) | Azure Monitor -> **Dashboards with Grafana** | ~$0 |
-| **C - Azure Container Apps** | Nothing | Application Insights | Azure Monitor -> **Dashboards with Grafana** | ~$0 (scale-to-zero) |
+| **B - Azure, local collector** | Docker: Collector + Tempo + Grafana | Application Insights (+ local Tempo) | Local Grafana **and** Azure Monitor → Dashboards with Grafana | ~$0 |
+| **C - Azure Container Apps** | Nothing | Application Insights | Azure Monitor → Dashboards with Grafana | ~$0 (scale-to-zero) |
 | **D - Grafana Cloud** | Nothing | Grafana Cloud (managed Tempo) | Grafana Cloud | $0 (free tier) |
 
-> **None of these need a paid Grafana instance.** B and C view the official **GitHub Copilot**
-> dashboard for free *inside the Azure portal* via
-> [Azure Monitor dashboards with Grafana](https://learn.microsoft.com/en-us/azure/azure-monitor/visualize/visualize-use-grafana-dashboards)
-> (same Grafana engine, $0 - versus ~$68/mo for Azure Managed Grafana). D uses Grafana Cloud's free tier.
+> **None of these need a paid Grafana instance.** B and C view dashboards for free *inside the Azure
+> portal* via [Azure Monitor dashboards with Grafana](https://learn.microsoft.com/en-us/azure/azure-monitor/visualize/visualize-use-grafana-dashboards)
+> (same Grafana engine, $0 — versus ~$68/mo for Azure Managed Grafana). D uses Grafana Cloud's free tier.
 
-See [Choosing an option](#choosing-an-option-detailed-trade-offs) below for a full comparison.
+Every backend carries **both surfaces** — the surface selector works everywhere. See
+[Choosing a backend](#choosing-a-backend-detailed-trade-offs) for a full comparison.
 
 ---
 
-## Choosing an option (detailed trade-offs)
+## Choosing a backend (detailed trade-offs)
 
 ### Comparison matrix
 
@@ -38,92 +63,75 @@ See [Choosing an option](#choosing-an-option-detailed-trade-offs) below for a fu
 | **Managed in the cloud** | none | Application Insights | ACA collector + Application Insights | Grafana Cloud (everything) |
 | **Telemetry backend** | Grafana Tempo (local) | Tempo (local) + App Insights | Application Insights | Grafana Cloud Tempo |
 | **Query language** | TraceQL | TraceQL **and** KQL | KQL | TraceQL |
-| **Dashboard** | this repo's TraceQL | this repo's TraceQL + official **GitHub Copilot** | official **GitHub Copilot** | this repo's TraceQL (re-point data source) |
+| **Surfaces covered** | both (selector) | both (selector) | both (selector) | both (selector) |
 | **Collector in path** (redaction / fan-out / buffering) | No | **Yes** (local) | **Yes** (cloud) | No (direct) |
 | **Auth on the wire** | none (localhost) | none (localhost) | Bearer token (public endpoint) | Basic (instance ID + token) |
 | **Where data lives** | your laptop only | laptop + your Azure region | your Azure region | Grafana Labs SaaS region |
-| **Cost** | $0 | ~$0 (App Insights 5 GB/mo free, then per-GB) | ~$0 (ACA free grant + scale-to-zero; App Insights 5 GB/mo free) | $0 free tier |
-| **Free-tier caps** | n/a | App Insights: 5 GB/mo, 90-day retention | ACA: 180k vCPU-s + 360k GiB-s + 2M req/mo; App Insights 5 GB/mo, 90-day | 50 GB traces/mo, **14-day** retention, **3 users** |
-| **Setup effort** | lowest (`docker compose up`) | medium (compose + `setup-azure.ps1`) | medium (`setup-azure.ps1` + `deploy-collector-aca.ps1`) | low (sign up + 3 env vars) |
+| **Cost** | $0 | ~$0 (App Insights 5 GB/mo free) | ~$0 (ACA free grant + scale-to-zero) | $0 free tier |
+| **Free-tier caps** | n/a | App Insights: 5 GB/mo, 90-day | ACA: 180k vCPU-s + 2M req/mo; App Insights 5 GB/mo | 50 GB traces/mo, 14-day, 3 users |
 | **Cold start** | no | no | **yes** (first request after idle) | no |
 | **Works offline / no cloud account** | **Yes** | No | No | No |
 | **Team / fleet ready** | No (per machine) | No (per machine) | **Yes** (shared endpoint) | **Yes** (shared endpoint) |
 
 ### Cross-cutting trade-offs
 
-- **Collector vs. direct.** B and C put an OTel Collector in the path, which buys you three things
-  the direct paths lack: (1) **redaction/filtering** of attributes before they leave; (2) **fan-out**
-  to more than one backend (B already sends to Tempo *and* App Insights); (3) **batching, retry, and
-  buffering** so a brief backend outage doesn't drop spans. D (direct to Grafana Cloud) is the
-  simplest wiring but has none of these - if the endpoint is unreachable, spans are dropped, and
-  whatever the editor emits goes straight to the SaaS.
-- **TraceQL vs. KQL.** A, D, and the local view of B use Grafana Tempo and **TraceQL** (this repo's
-  cache dashboard). B's Azure view and C use App Insights and **KQL** (the official *GitHub Copilot*
-  dashboard). B is the only option that gives you both at once.
-- **Data residency & compliance.** A keeps data on the laptop. B and C keep the cloud copy in **your
-  Azure region** (e.g. Sweden Central / Norway East) under your Azure RBAC - the better fit when
-  telemetry must stay in Azure/EEA. D sends data to **Grafana Labs' SaaS**, a third party, which may
-  matter for regulated workloads.
-- **Single developer vs. fleet.** A and B run per-machine (every dev runs Docker), so they're great
-  for one person or a proof-of-concept but don't aggregate a team. To cover a fleet you need a
-  **shared endpoint** - exactly C (your cloud collector) or D (Grafana Cloud SaaS) - rolled out with
-  **Intune** environment variables (`OTEL_EXPORTER_OTLP_ENDPOINT` + `OTEL_EXPORTER_OTLP_HEADERS`).
-- **Security.** C and D send auth over the wire; C's endpoint is **public**, so treat the bearer
-  token as a secret and, for production, add IP restrictions or Private Link. Keep `captureContent`
-  **off** - it matters most for C/D, where content would land in a shared/third-party backend with
-  no collector to scrub it.
-- **Reliability & latency.** Local paths (A/B) have the lowest latency and no cold start. C scales to
-  zero, so the first request after idle waits a few seconds while a replica spins up (subsequent
-  requests are fast; the SDK batches and retries). C/D depend on network egress to the cloud.
-- **Cost, concretely.** All four avoid the ~$68/mo of Azure Managed Grafana. A is truly $0. B and C
-  ride Application Insights' 5 GB/month free grant (a demo ingests far less); C adds an ACA app that
-  bills only while a replica runs and is covered by ACA's monthly free grant. D is free until you hit
-  50 GB traces/month, 14-day retention, or 3 users - after which Grafana Cloud Pro applies.
+- **Collector vs. direct.** B and C put an OTel Collector in the path, which buys **redaction/filtering**
+  of attributes before they leave, **fan-out** to more than one backend (B sends to Tempo *and* App
+  Insights), and **batching/retry/buffering** so a brief outage doesn't drop spans. D (direct to
+  Grafana Cloud) is the simplest wiring but has none of these.
+- **TraceQL vs. KQL.** A, D, and the local view of B use Grafana Tempo and **TraceQL**. B's Azure view
+  and C use App Insights and **KQL**. B gives you both at once.
+- **Data residency.** A keeps data on the laptop. B and C keep the cloud copy in **your Azure region**
+  under your RBAC. D sends data to **Grafana Labs' SaaS** (a third party).
+- **Single dev vs. fleet.** A and B run per-machine. To cover a fleet you need a **shared endpoint** —
+  C (your cloud collector) or D (Grafana Cloud) — rolled out with **Intune** environment variables.
+- **Security.** C and D send auth over the wire; C's endpoint is **public**, so treat the bearer token
+  as a secret. Keep content capture **off** — it matters most for C/D, where content would land in a
+  shared/third-party backend with no collector to scrub it.
 
 ### When to pick each
 
-- **A - Local.** Solo developer, a quick local check, offline/air-gapped, or no cloud account. Zero
-  setup, fully private. Downside: one machine only, data is ephemeral, no org-wide view.
-- **B - Azure, local collector.** You want *both* the local TraceQL cache dashboard and the official
-  Azure GitHub Copilot dashboard, with a collector for redaction/fan-out, and data in your Azure
-  tenant - a great single-machine evaluation before a fleet rollout. Downside: still runs Docker locally.
-- **C - Azure Container Apps collector.** An Azure org that wants a **fleet-ready, nothing-local**
-  setup with data staying in Azure, the official dashboard, a collector in the path, and ~$0 idle
-  cost (scale-to-zero). Downside: you operate a public endpoint + token, and there's a cold start.
+- **A - Local.** Solo, quick check, offline, or no cloud account. Zero setup, fully private.
+- **B - Azure, local collector.** You want *both* the local TraceQL dashboard and the Azure one, with a
+  collector for redaction/fan-out, and data in your Azure tenant — great for evaluating before a rollout.
+- **C - Azure Container Apps collector.** Azure org that wants a **fleet-ready, nothing-local** setup,
+  data staying in Azure, a collector in the path, and ~$0 idle cost (scale-to-zero).
 - **D - Grafana Cloud.** A Grafana-Cloud shop or small team that wants **nothing to run** and the
-  fastest path to a hosted dashboard. Downside: third-party data residency and free-tier caps
-  (50 GB / 14 days / 3 users), no collector in the path.
+  fastest path to a hosted dashboard.
 
 ---
 
-## How prompt-cache visibility works
+## What the telemetry looks like
 
-Copilot Chat spans carry these attributes (OTel [GenAI semantic conventions](https://github.com/open-telemetry/semantic-conventions/blob/main/docs/gen-ai/)):
+Copilot spans (both surfaces) carry these attributes ([GenAI semantic conventions](https://github.com/open-telemetry/semantic-conventions/blob/main/docs/gen-ai/)):
 
 | Attribute | Meaning |
 |-----------|---------|
 | `gen_ai.usage.input_tokens` / `gen_ai.usage.output_tokens` | Raw token counts |
-| `gen_ai.usage.cache_read.input_tokens` | Tokens served **from** cache -> **cache HIT** |
-| `gen_ai.usage.cache_creation.input_tokens` | Tokens **written to** cache -> **cache MISS** (new entry) |
-| `gen_ai.request.model` | Model (slice dashboards by model) |
+| `gen_ai.usage.cache_read.input_tokens` | Tokens served **from** cache → **cache HIT** |
+| `gen_ai.usage.cache_creation.input_tokens` | Tokens **written to** cache → **cache MISS** |
+| `gen_ai.request.model` | Model (slice by model) |
 | `gen_ai.operation.name` | `chat`, `invoke_agent`, or `execute_tool` |
+| `resource.service.name` | **The surface** — `copilot-chat` (VS Code) or `github-copilot` (CLI) |
 
-**Cache hit** = `cache_read.input_tokens > 0` &nbsp;.&nbsp; **Cache miss** = `cache_creation.input_tokens > 0` &nbsp;.&nbsp; **No cache** = both 0.
+**Cache hit** = `cache_read.input_tokens > 0` · **Cache miss** = `cache_creation.input_tokens > 0` · **No cache** = both 0.
 
-Unstable prompt prefixes (a drifting system message, unstable tool ordering, a workspace hint that
-changes every call) quietly destroy your hit rate. These dashboards make that visible.
+Each interaction is a span tree: `invoke_agent` → `chat` (LLM calls, where cache tokens live) →
+`execute_tool` (tool runs). Unstable prompt prefixes (a drifting system message, unstable tool
+ordering, a workspace hint that changes every call) quietly destroy your hit rate — these dashboards
+make that visible, per surface.
 
 ---
 
-## Configure VS Code
+## Enable telemetry per surface
 
-Copilot emits OTel when `github.copilot.chat.otel.enabled` is `true` (or the `OTEL_EXPORTER_OTLP_ENDPOINT`
-env var is set). All signals follow the GenAI conventions, so they work with any OTel backend.
+Copilot emits OTel when `github.copilot.chat.otel.enabled` is `true`, `COPILOT_OTEL_ENABLED=true`,
+or `OTEL_EXPORTER_OTLP_ENDPOINT` is set. The **endpoint** you point at determines the backend:
+`http://localhost:4318` for the local options (A, B) or a cloud URL for C, D.
 
-### Local options (A, B) - `settings.json`
+### VS Code Copilot Chat (`copilot-chat`)
 
-Add these to your **User** `settings.json` (`Ctrl+Shift+P` -> *Open User Settings (JSON)*), then
-reload the window (`Ctrl+Shift+P` -> *Developer: Reload Window*):
+**Local backends (A, B)** — add to your **User** `settings.json` (`Ctrl+Shift+P` → *Open User Settings (JSON)*), then reload the window:
 
 ```json
 {
@@ -134,14 +142,8 @@ reload the window (`Ctrl+Shift+P` -> *Developer: Reload Window*):
 }
 ```
 
-`http://localhost:4318` is Tempo directly (A) or the local collector (B). In both cases VS Code's
-settings are identical.
-
-### Cloud options (C, D) - environment variables
-
-Cloud endpoints require an **auth token**, and the Copilot client reads the token from an
-environment variable (there is **no `settings.json` key for headers**). Set these instead
-(no `settings.json` changes needed), then **restart VS Code**:
+**Cloud backends (C, D)** — cloud endpoints need an auth token, which there is **no `settings.json`
+key for**, so use environment variables instead (no settings.json needed) and restart VS Code:
 
 ```powershell
 setx OTEL_EXPORTER_OTLP_ENDPOINT "https://<your-cloud-endpoint>"
@@ -149,32 +151,31 @@ setx OTEL_EXPORTER_OTLP_HEADERS  "Authorization=Bearer <token>"   # Grafana Clou
 setx COPILOT_OTEL_ENABLED        "true"
 ```
 
-> **Important safety notes**
-> - Use **User** settings / user env vars, not Workspace - the OTel SDK initializes early in startup.
-> - `captureContent` stays `false` by default. Setting it to `true` puts full prompts and responses
->   in the traces - great for debugging your own, risky for anyone else's.
-> - Going direct to the cloud (C, D) means no collector in the path to redact/filter content, so
->   keep content capture off and treat the endpoint token as a secret.
+### GitHub Copilot CLI (`github-copilot`)
 
-### GitHub Copilot CLI
+The [Copilot CLI](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference#opentelemetry-monitoring)
+reads the **same `OTEL_*` environment variables** — so the cloud block above enables it too. Just run
+`copilot` from a shell that has those vars. Notes:
 
-The [**GitHub Copilot CLI**](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference#opentelemetry-monitoring)
-emits the same OpenTelemetry signals and reads the **same `OTEL_*` environment variables** - so the
-cloud setup above (`OTEL_EXPORTER_OTLP_ENDPOINT` + `OTEL_EXPORTER_OTLP_HEADERS` +
-`COPILOT_OTEL_ENABLED=true`) enables it too. Just run `copilot` from a shell that has those vars.
+- Default `OTEL_SERVICE_NAME` is **`github-copilot`** (VS Code uses `copilot-chat`). **Leave it unset**
+  so the two surfaces stay distinct in the dashboards.
+- Content capture is a different flag: `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` (default `false`).
+- For a **local** backend (A/B), point the CLI at the collector: `setx OTEL_EXPORTER_OTLP_ENDPOINT "http://localhost:4318"`.
 
-One difference: the CLI defaults `OTEL_SERVICE_NAME` to `github-copilot` (VS Code uses `copilot-chat`).
-Set `OTEL_SERVICE_NAME=copilot-chat` to share a single dashboard, or query `github-copilot`
-separately to tell the CLI and the editor apart. Content capture in the CLI is a different flag,
-`OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` (default `false`). See the
-[Copilot CLI OpenTelemetry monitoring reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference#opentelemetry-monitoring).
+> **Safety.** Use **User** settings / user env vars, not Workspace. Keep `captureContent` **off** — set
+> to `true` and full prompts, responses, and code land in the traces (fine for debugging your own,
+> risky otherwise). Going direct to the cloud (C, D) means no collector to scrub content.
+
+> **Enable *all* surfaces at once (the fleet shape).** Set the four env vars once at the user/machine
+> level and every Copilot surface reports: VS Code as `copilot-chat`, the CLI as `github-copilot`. This
+> is exactly what Option D + the surface selector are built for.
 
 ---
 
-## Option A - Local (Docker, no cloud)
+## Option A — Local (Docker, no cloud)
 
 ```
-VS Code (Copilot OTel) --OTLP/HTTP :4318--> Grafana Tempo --TraceQL :3200--> Grafana :3001
+VS Code / Copilot CLI --OTLP/HTTP :4318--> Grafana Tempo --TraceQL :3200--> Grafana :3001
 ```
 
 ### 1. Start the stack
@@ -187,38 +188,31 @@ docker compose up -d
 |---------|-----------|---------|
 | Tempo   | 4318 / 4317 | OTLP receiver (HTTP / gRPC) |
 | Tempo   | 3200 | Tempo query API |
-| Grafana | **3001** | Dashboards - login `admin` / `admin` |
+| Grafana | **3001** | Dashboards — login `admin` / `admin` |
 
-> **Port note:** upstream uses `3000` for Grafana; it's remapped to **3001** here because `3000`
-> was already taken on the author's machine. The container still listens on 3000 internally.
+> **Port note:** upstream uses `3000` for Grafana; it's remapped to **3001** here because `3000` was
+> already taken on the author's machine. The container still listens on 3000 internally.
 
-### 2. Configure VS Code
+### 2. Enable the surfaces
 
-Apply the [local settings](#local-options-a-b---settingsjson) above and reload.
+Apply the VS Code settings and/or CLI env vars from [Enable telemetry per surface](#enable-telemetry-per-surface) (local endpoint `http://localhost:4318`).
 
 ### 3. Generate traces
 
-Use Copilot Chat (ask questions, run agent tasks, invoke tools). Each interaction produces a tree:
-
-```
-invoke_agent copilot
-  |-- chat gpt-4o          <- cache_read / cache_creation tokens live here
-  |-- execute_tool readFile
-  |-- chat gpt-4o
-```
+Use Copilot Chat and/or run `copilot` for a few minutes.
 
 ### 4. View the dashboard
 
-Open **http://localhost:3001** -> Dashboards -> **Copilot Prompt Cache & Usage**. Panels include
-cache hit vs miss over time, per-model calls and latency, top tools, and a raw span table.
+Open **http://localhost:3001** → Dashboards → **GitHub Copilot OTel — All Surfaces (Tempo / TraceQL)**.
+Use the **Copilot surface** dropdown to switch between *All surfaces*, *VS Code*, and *Copilot CLI*.
 
-### 5. Explore raw traces (Explore -> Tempo)
+### 5. Explore raw traces (Explore → Tempo)
 
 ```traceql
-{ span.gen_ai.usage.cache_read.input_tokens > 0 }
+{ resource.service.name =~ "copilot-chat|github-copilot" }
 ```
 ```traceql
-{ span.gen_ai.operation.name = "chat" && resource.service.name = "copilot-chat" }
+{ span.gen_ai.usage.cache_read.input_tokens > 0 }
 ```
 
 ### Stop
@@ -229,18 +223,18 @@ docker compose down -v
 
 ---
 
-## Option B - Azure, local collector (free visualization)
+## Option B — Azure, local collector (free visualization)
 
 An **OpenTelemetry Collector** runs locally and **fans out** to *both* Grafana Tempo (local TraceQL
-dashboard) **and** Azure Application Insights. You then view the official **GitHub Copilot**
-dashboard for free in the Azure portal - no paid Grafana instance.
+dashboard) **and** Azure Application Insights. View the free in-portal dashboard, the local Tempo
+dashboard, or both.
 
 ```mermaid
 flowchart LR
-    VS["VS Code<br/>(Copilot OTel)"] -->|OTLP/HTTP :4318| Col["OTel Collector<br/>(contrib)"]
+    VS["VS Code / Copilot CLI"] -->|OTLP/HTTP :4318| Col["OTel Collector<br/>(contrib)"]
     Col -->|OTLP :4317| Tempo["Grafana Tempo<br/>(local :3001 dashboard)"]
     Col -->|azuremonitor exporter| AI["Azure Application Insights"]
-    Portal["Azure Monitor > Dashboards with Grafana (free)"] -->|Azure Monitor / KQL| AI
+    Portal["Azure Monitor > Dashboards with Grafana (free)"] -->|KQL| AI
 ```
 
 ### 1. Provision the Azure backend (Log Analytics + Application Insights)
@@ -250,41 +244,38 @@ az login
 ./azure/setup-azure.ps1 -Location swedencentral -ResourceGroup rg-ghcp-otel -NamePrefix ghcpotel
 ```
 
-Idempotent. It creates a workspace-based Application Insights, grants your user read access, and
-writes the connection string to `.env` (git-ignored). **No Managed Grafana is created.**
+Idempotent. Creates a workspace-based Application Insights, grants your user read access, and writes
+the connection string to `.env` (git-ignored). **No Managed Grafana is created.**
 
 ### 2. Switch to the collector-fronted stack
-
-The Azure stack reuses the same host ports, so stop the local-only one first:
 
 ```powershell
 docker compose -f docker-compose.yml down
 docker compose -f docker-compose.azure.yml up -d
 ```
 
-### 3. Configure VS Code
+### 3. Enable the surfaces
 
-Apply the [local settings](#local-options-a-b---settingsjson) - `:4318` now points at the collector.
+Same as Option A (local endpoint `http://localhost:4318`, now the collector) — see [Enable telemetry per surface](#enable-telemetry-per-surface).
 
-### 4. Verify data reached Application Insights
+### 4. Verify data reached Application Insights (both surfaces)
 
 ```powershell
 $id = az monitor app-insights component show -g rg-ghcp-otel -a ghcpotel-appi --query id -o tsv
 az monitor app-insights query --ids $id --analytics-query `
-  "dependencies | where timestamp > ago(1h) | where cloud_RoleName == 'copilot-chat' | take 50"
+  "dependencies | where timestamp > ago(1h) | where cloud_RoleName matches regex 'copilot-chat|github-copilot' | summarize count() by cloud_RoleName"
 ```
 
 The `azuremonitor` exporter maps Copilot spans into the App Insights **`dependencies`** table with
-`cloud_RoleName == "copilot-chat"` and all `gen_ai.*` values in `customDimensions` - exactly the
-schema the official dashboard queries.
+`cloud_RoleName` = the surface and all `gen_ai.*` values in `customDimensions`.
 
-### 5. View the dashboard - free, in the Azure portal
+### 5. View the dashboards
 
-1. Azure portal -> **Azure Monitor** -> **Dashboards with Grafana**.
-2. Open the **GitHub Copilot** dashboard from the gallery (or browse to
-   <https://aka.ms/amg/dash/gh-copilot>, which opens this same in-portal gallery).
-   If it isn't listed, use **New -> Import** and paste the dashboard's JSON / Grafana ID.
-3. When prompted, pick the **Azure Monitor** data source and scope it to `rg-ghcp-otel`.
+- **Local Grafana** (`http://localhost:3001`): the TraceQL dashboard (as in Option A).
+- **Azure portal** → **Azure Monitor** → **Dashboards with Grafana**: import
+  `dashboards/appinsights/copilot-otel-appinsights.json` (surface selector included), or use the
+  official **GitHub Copilot** gallery dashboard (note: the gallery one covers `copilot-chat` **only** —
+  ours adds the CLI).
 
 ### 6. Tear down
 
@@ -294,15 +285,15 @@ schema the official dashboard queries.
 
 ---
 
-## Option C - Azure Container Apps collector (nothing runs locally, scale-to-zero)
+## Option C — Azure Container Apps collector (nothing runs locally, scale-to-zero)
 
 Run the OTel Collector in the cloud on **Azure Container Apps** (Consumption plan, `minReplicas: 0`),
 exposing a public, token-protected OTLP endpoint that forwards to Application Insights. Nothing runs
-on your machine; the endpoint costs ~$0 while idle (scales to zero) and wakes on the first request.
+on your machine; ~$0 while idle (scales to zero), wakes on the first request.
 
 ```mermaid
 flowchart LR
-    VS["VS Code (Copilot OTel)"] -->|OTLP/HTTP + Bearer token| ACA["OTel Collector on<br/>Azure Container Apps (scale-to-zero)"]
+    VS["VS Code / Copilot CLI"] -->|OTLP/HTTP + Bearer token| ACA["OTel Collector on<br/>Azure Container Apps (scale-to-zero)"]
     ACA -->|azuremonitor exporter| AI["Azure Application Insights"]
     Portal["Azure Monitor > Dashboards with Grafana (free)"] --> AI
 ```
@@ -320,17 +311,16 @@ az login
 ./azure/deploy-collector-aca.ps1 -ResourceGroup rg-ghcp-otel -NamePrefix ghcpotel
 ```
 
-This creates a Consumption Container Apps environment and a scale-to-zero app, generates a random
-64-hex bearer token, wires the collector config (`config/otel-collector-cloud.yaml`) + the App
-Insights connection string as secrets, and writes the endpoint + token + ready-to-paste env vars to
-`.env.aca` (git-ignored). It prints:
+Creates a Consumption Container Apps environment and a scale-to-zero app, generates a random 64-hex
+bearer token, wires `config/otel-collector-cloud.yaml` + the App Insights connection string as
+secrets, and writes the endpoint + token + ready-to-paste env vars to `.env.aca` (git-ignored):
 
 ```
 OTLP endpoint : https://<app>.<region>.azurecontainerapps.io
 Bearer token  : <64-hex>
 ```
 
-### 3. Point VS Code at it (values from `.env.aca`)
+### 3. Point the surfaces at it (values from `.env.aca`)
 
 ```powershell
 setx OTEL_EXPORTER_OTLP_ENDPOINT "https://<app>.<region>.azurecontainerapps.io"
@@ -338,16 +328,14 @@ setx OTEL_EXPORTER_OTLP_HEADERS  "Authorization=Bearer <token>"
 setx COPILOT_OTEL_ENABLED        "true"
 ```
 
-Restart VS Code and use Copilot Chat. (Header auth is env-var only - there is no `settings.json` key.)
+Restart VS Code; run `copilot` from a fresh shell. Both surfaces now report through the cloud collector.
 
 ### 4. Verify + view
 
-Same as Option B steps 4-5: query App Insights `dependencies | where cloud_RoleName == 'copilot-chat'`,
-then open **Azure Monitor -> Dashboards with Grafana -> GitHub Copilot**.
+Query App Insights `dependencies | where cloud_RoleName matches regex 'copilot-chat|github-copilot'`,
+then open **Azure Monitor → Dashboards with Grafana** and import `dashboards/appinsights/copilot-otel-appinsights.json`.
 
 ### 5. Stop / tear down
-
-Delete just the collector (keep App Insights):
 
 ```powershell
 az containerapp delete     -g rg-ghcp-otel -n ghcpotel-collector --yes
@@ -356,47 +344,69 @@ az containerapp env delete -g rg-ghcp-otel -n ghcpotel-acaenv     --yes
 
 Or remove everything: `./azure/teardown-azure.ps1 -ResourceGroup rg-ghcp-otel`.
 
-> **Cost:** Consumption + `minReplicas: 0` means no always-running instance; ACA's monthly free
-> grant typically covers demo traffic. The first request after idle incurs a few-second cold start.
+> **Cost:** Consumption + `minReplicas: 0` means no always-running instance; ACA's monthly free grant
+> typically covers demo traffic. First request after idle incurs a few-second cold start.
 
 ---
 
-## Option D - Grafana Cloud (nothing runs locally, $0)
+## Option D — Grafana Cloud (nothing runs locally, $0)
 
-Point VS Code straight at Grafana Cloud's managed OTLP endpoint. No Docker, no collector, no Azure -
-traces go to Grafana Cloud's managed Tempo and you use TraceQL there.
+Point the surfaces straight at Grafana Cloud's managed OTLP endpoint. No Docker, no collector, no
+Azure — traces go to Grafana Cloud's managed Tempo and you use TraceQL there.
 
 ```mermaid
 flowchart LR
-    VS["VS Code (Copilot OTel)"] -->|OTLP/HTTP + Basic auth| GC["Grafana Cloud<br/>(managed Tempo + Grafana)"]
+    VS["VS Code / Copilot CLI"] -->|OTLP/HTTP + Basic auth| GC["Grafana Cloud<br/>(managed Tempo + Grafana)"]
 ```
 
 ### 1. Create a free Grafana Cloud stack
 
-Sign up at [grafana.com](https://grafana.com/) (free tier). In your stack, open the
-**OpenTelemetry (OTLP)** connection page and note:
+Sign up at [grafana.com](https://grafana.com/). In the Grafana Cloud Portal, open your stack →
+**Configure** on the **OpenTelemetry** tile → generate a token. It shows ready-made
+`OTEL_EXPORTER_OTLP_ENDPOINT` and `OTEL_EXPORTER_OTLP_HEADERS` values (base64 already computed).
 
-- the **OTLP endpoint**, e.g. `https://otlp-gateway-<zone>.grafana.net/otlp`
-- your **Instance ID** (a number) and an **API token** (with OTLP / MetricsPublisher scope).
-
-### 2. Set VS Code environment variables
-
-Grafana Cloud uses HTTP Basic auth - the header value is `Basic base64("<instanceID>:<token>")`:
+### 2. Enable ALL surfaces
 
 ```powershell
-$b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("<instanceID>:<token>"))
+setx OTEL_EXPORTER_OTLP_PROTOCOL "http/protobuf"
 setx OTEL_EXPORTER_OTLP_ENDPOINT "https://otlp-gateway-<zone>.grafana.net/otlp"
-setx OTEL_EXPORTER_OTLP_HEADERS  "Authorization=Basic $b64"
+setx OTEL_EXPORTER_OTLP_HEADERS  "Authorization=Basic <base64>"
 setx COPILOT_OTEL_ENABLED        "true"
+# Do NOT set OTEL_SERVICE_NAME — leave VS Code=copilot-chat, CLI=github-copilot for the surface selector.
 ```
 
-Restart VS Code, then use Copilot Chat.
+Open a **new** terminal (so it inherits the vars), verify `echo $env:OTEL_EXPORTER_OTLP_ENDPOINT`,
+then use VS Code Copilot Chat and run `copilot`. Both surfaces flow to the same stack.
 
 ### 3. View
 
-In Grafana Cloud, open **Explore -> your Traces (Tempo) data source** and run the same TraceQL, e.g.
-`{ span.gen_ai.usage.cache_read.input_tokens > 0 }`. To reuse the prebuilt dashboard, import
-`dashboards/copilot-prompt-cache.json` and re-point its data source to your Grafana Cloud Tempo.
+Import `dashboards/tempo/copilot-otel-tempo.json` into Grafana Cloud (Dashboards → New → Import;
+pick your Grafana Cloud **Traces/Tempo** data source). Use the **Copilot surface** selector to view
+*All*, *VS Code*, or *Copilot CLI*. Or use Explore → your traces data source with the TraceQL above.
+
+---
+
+## Dashboards (surface-aware, uploadable)
+
+Both dashboards have a **Copilot surface** template variable — *All surfaces* / *VS Code (copilot-chat)*
+/ *Copilot CLI (github-copilot)* — that filters every panel on `resource.service.name` (TraceQL) or
+`cloud_RoleName` (KQL). They also expose a **data source** variable so you can upload them into any Grafana.
+
+| File | Backend / data source | Use it for |
+|------|-----------------------|------------|
+| `dashboards/tempo/copilot-otel-tempo.json` | Grafana **Tempo** (TraceQL) | Options **A, B** (local Grafana) and **D** (Grafana Cloud) |
+| `dashboards/appinsights/copilot-otel-appinsights.json` | Grafana **Azure Monitor** (KQL / Logs) | Options **B, C** (App Insights via Dashboards with Grafana) |
+
+- **Local (A/B):** the Tempo dashboard is auto-provisioned into the Docker Grafana (`dashboards/tempo`
+  is mounted). Just open it.
+- **Grafana Cloud (D):** import the Tempo JSON, pick your Tempo data source.
+- **Azure Monitor Grafana / in-portal (B/C):** import the App Insights JSON, pick your Azure Monitor
+  data source, and set the **Application Insights resource ID** variable
+  (`az monitor app-insights component show -g <rg> -a <name> --query id -o tsv`).
+
+Panels: total LLM calls, cache read vs creation tokens, **calls by surface**, cache hit vs miss over
+time, calls & p50 latency by model, top tools, tokens in/out, and a recent-calls table — all filtered
+by the selected surface.
 
 ---
 
@@ -404,43 +414,57 @@ In Grafana Cloud, open **Explore -> your Traces (Tempo) data source** and run th
 
 | Path | Purpose |
 |------|---------|
-| `docker-compose.yml` | **Option A** - Tempo + Grafana |
-| `docker-compose.azure.yml` | **Option B** - OTel Collector + Tempo + Grafana |
+| `docker-compose.yml` | **Option A** — Tempo + Grafana |
+| `docker-compose.azure.yml` | **Option B** — OTel Collector + Tempo + Grafana |
 | `config/tempo.yaml` | Tempo: OTLP receivers, local storage, TraceQL-metrics generator |
-| `config/grafana/*.yaml` | Grafana provisioning (Tempo data source + dashboard) |
-| `config/otel-collector.yaml` | **Option B** collector: OTLP in -> `otlp/tempo` + `azuremonitor` |
-| `config/otel-collector-cloud.yaml` | **Option C** collector: OTLP + bearer auth -> `azuremonitor` |
-| `dashboards/copilot-prompt-cache.json` | The local TraceQL cache/usage dashboard |
+| `config/grafana/*.yaml` | Grafana provisioning (Tempo data source + dashboards) |
+| `config/otel-collector.yaml` | **Option B** collector: OTLP in → `otlp/tempo` + `azuremonitor` |
+| `config/otel-collector-cloud.yaml` | **Option C** collector: OTLP + bearer auth → `azuremonitor` |
+| `dashboards/tempo/copilot-otel-tempo.json` | Surface-aware **TraceQL** dashboard (A, B, D) |
+| `dashboards/appinsights/copilot-otel-appinsights.json` | Surface-aware **KQL** dashboard (B, C) |
 | `azure/setup-azure.ps1` | Provisions Log Analytics + Application Insights, writes `.env` |
-| `azure/deploy-collector-aca.ps1` | **Option C** - deploy the collector to Azure Container Apps |
+| `azure/deploy-collector-aca.ps1` | **Option C** — deploy the collector to Azure Container Apps |
 | `azure/teardown-azure.ps1` | Deletes the resource group |
 | `.env.example` | Template for `APPLICATIONINSIGHTS_CONNECTION_STRING` (copy to `.env`) |
 
 ## Rolling this out to a team (Intune)
 
-For one machine the settings above are fine, but to guarantee every developer reports telemetry,
-push the config as **managed settings via Microsoft Intune** so it isn't opt-in:
+To guarantee every developer reports telemetry from every surface, push the config as **managed
+settings via Microsoft Intune**:
 
 - **Local collector (B):** push the four `github.copilot.chat.otel.*` settings.
-- **Cloud endpoint (C, D):** push the `OTEL_EXPORTER_OTLP_ENDPOINT` and `OTEL_EXPORTER_OTLP_HEADERS`
-  environment variables (and `COPILOT_OTEL_ENABLED=true`) to managed devices, pointing at your shared
-  collector or SaaS endpoint. This is the most scalable shape - developers run nothing locally.
+- **Cloud endpoint (C, D):** push `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_HEADERS`, and
+  `COPILOT_OTEL_ENABLED=true` as environment variables. This is the most scalable shape — developers
+  run nothing locally, and every surface (VS Code + CLI) reports automatically.
+
+## Using this repo as an article foundation
+
+Each section maps to a beat in a longread on Copilot observability:
+
+1. **Why** — prompt-cache efficiency as a leading indicator of prompt stability and cost.
+2. **What** — the surfaces (VS Code, CLI) and the shared GenAI conventions.
+3. **How** — four backends from a laptop ($0, offline) to a fleet-ready cloud endpoint.
+4. **See it** — one surface-aware dashboard, TraceQL and KQL variants, side-by-side VS Code vs CLI.
+5. **Scale it** — collector fan-out/redaction and Intune-managed rollout.
+
+Good follow-up experiments: per-surface cache-hit rate over a week, model-mix drift, tool latency
+outliers, and comparing agent (`invoke_agent`) vs single-shot (`chat`) shapes across surfaces.
 
 ## Credits
 
-- Original concept, local Docker stack, and dashboard by **Samuel Tauil** -
+- Original concept, local Docker stack, and dashboard by **Samuel Tauil** —
   [samueltauil/copilot-traces](https://github.com/samueltauil/copilot-traces) and the article
   [Visualizing Copilot Prompt Cache with OTel + Grafana](https://samueltauil.github.io/github-copilot/devops/2026/07/02/visualizing-copilot-prompt-cache-otel-grafana.html).
-- This fork adds the free **Azure Monitor "Dashboards with Grafana"** variant (Option B), an
-  **Azure Container Apps** scale-to-zero collector (Option C), and a **Grafana Cloud** direct path
-  (Option D) - none requiring a paid Grafana instance.
+- This fork generalizes it to **all Copilot surfaces** (VS Code + CLI) with surface-aware dashboards,
+  and adds the free **Azure Monitor "Dashboards with Grafana"** variant (Option B), an **Azure
+  Container Apps** scale-to-zero collector (Option C), and a **Grafana Cloud** direct path (Option D).
 - Licensed under [MIT](LICENSE).
 
 ## References
 
 - [Monitor agent usage with OpenTelemetry (VS Code docs)](https://code.visualstudio.com/docs/agents/guides/monitoring-agents)
-- [GitHub Copilot CLI - OpenTelemetry monitoring](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference#opentelemetry-monitoring)
+- [GitHub Copilot CLI — OpenTelemetry monitoring](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference#opentelemetry-monitoring)
 - [Monitor AI coding agents with Grafana (Microsoft Learn)](https://learn.microsoft.com/en-us/azure/managed-grafana/grafana-opentelemetry-app-insights)
 - [Azure Monitor dashboards with Grafana](https://learn.microsoft.com/en-us/azure/azure-monitor/visualize/visualize-use-grafana-dashboards)
 - [Grafana Cloud OTLP endpoint](https://grafana.com/docs/grafana-cloud/send-data/otlp/)
-- [Azure Monitor Exporter (OpenTelemetry Collector contrib)](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/exporter/azuremonitorexporter)
+- [OTel GenAI semantic conventions](https://github.com/open-telemetry/semantic-conventions/blob/main/docs/gen-ai/)

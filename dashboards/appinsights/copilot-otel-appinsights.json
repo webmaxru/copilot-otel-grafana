@@ -1,0 +1,137 @@
+{
+  "annotations": { "list": [] },
+  "description": "GitHub Copilot OpenTelemetry telemetry in Azure Application Insights, across ALL surfaces (VS Code + Copilot CLI). Copilot spans land in the App Insights 'dependencies' table with cloud_RoleName = the surface and gen_ai.* values in customDimensions. Use the 'Copilot surface' selector and set the Application Insights resource ID on import.",
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [
+    { "icon": "external link", "targetBlank": true, "title": "Monitor AI agents with Grafana", "type": "link", "url": "https://learn.microsoft.com/en-us/azure/managed-grafana/grafana-opentelemetry-app-insights" },
+    { "icon": "external link", "targetBlank": true, "title": "Copilot CLI OTel docs", "type": "link", "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference#opentelemetry-monitoring" }
+  ],
+  "templating": {
+    "list": [
+      { "type": "datasource", "name": "datasource", "label": "Azure Monitor data source", "query": "grafana-azure-monitor-datasource", "refresh": 1, "hide": 0, "current": {} },
+      {
+        "type": "textbox", "name": "appi", "label": "Application Insights resource ID", "hide": 0,
+        "description": "Full resource ID, e.g. /subscriptions/<sub>/resourceGroups/rg-ghcp-otel/providers/microsoft.insights/components/ghcpotel-appi",
+        "query": "", "current": { "text": "", "value": "" }, "options": []
+      },
+      {
+        "type": "custom", "name": "surface", "label": "Copilot surface", "hide": 0, "includeAll": false, "multi": false,
+        "query": "All surfaces : copilot-chat|github-copilot, VS Code (copilot-chat) : copilot-chat, Copilot CLI (github-copilot) : github-copilot",
+        "current": { "text": "All surfaces", "value": "copilot-chat|github-copilot" },
+        "options": [
+          { "text": "All surfaces", "value": "copilot-chat|github-copilot", "selected": true },
+          { "text": "VS Code (copilot-chat)", "value": "copilot-chat", "selected": false },
+          { "text": "Copilot CLI (github-copilot)", "value": "github-copilot", "selected": false }
+        ]
+      }
+    ]
+  },
+  "panels": [
+    { "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }, "id": 100, "title": "Summary — surface: $surface", "type": "row" },
+    {
+      "title": "Total LLM Calls", "type": "stat", "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 }, "id": 1,
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "${datasource}" },
+      "targets": [{ "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "${datasource}" }, "queryType": "Azure Log Analytics", "azureLogAnalytics": { "resources": ["${appi}"], "dashboardTime": true, "timeColumn": "timestamp", "resultFormat": "table", "query": "dependencies | where cloud_RoleName matches regex '$surface' | extend op=tostring(customDimensions['gen_ai.operation.name']) | where op == 'chat' | summarize Total=count()" }, "refId": "A" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "blue", "value": null }] } } },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "title": "Cache Read Tokens (Hits)", "type": "stat", "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 }, "id": 2,
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "${datasource}" },
+      "targets": [{ "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "${datasource}" }, "queryType": "Azure Log Analytics", "azureLogAnalytics": { "resources": ["${appi}"], "dashboardTime": true, "timeColumn": "timestamp", "resultFormat": "table", "query": "dependencies | where cloud_RoleName matches regex '$surface' | extend cr=toint(customDimensions['gen_ai.usage.cache_read.input_tokens']) | where cr > 0 | summarize Hits=count()" }, "refId": "A" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "green", "value": null }] } } },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "title": "Cache Creation Tokens (Misses)", "type": "stat", "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 }, "id": 3,
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "${datasource}" },
+      "targets": [{ "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "${datasource}" }, "queryType": "Azure Log Analytics", "azureLogAnalytics": { "resources": ["${appi}"], "dashboardTime": true, "timeColumn": "timestamp", "resultFormat": "table", "query": "dependencies | where cloud_RoleName matches regex '$surface' | extend cc=toint(customDimensions['gen_ai.usage.cache_creation.input_tokens']) | where cc > 0 | summarize Misses=count()" }, "refId": "A" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "orange", "value": null }] } } },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "title": "Tool Calls", "type": "stat", "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 }, "id": 4,
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "${datasource}" },
+      "targets": [{ "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "${datasource}" }, "queryType": "Azure Log Analytics", "azureLogAnalytics": { "resources": ["${appi}"], "dashboardTime": true, "timeColumn": "timestamp", "resultFormat": "table", "query": "dependencies | where cloud_RoleName matches regex '$surface' | extend op=tostring(customDimensions['gen_ai.operation.name']) | where op == 'execute_tool' | summarize Tools=count()" }, "refId": "A" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "purple", "value": null }] } } },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    { "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 }, "id": 101, "title": "Surfaces & cache", "type": "row" },
+    {
+      "title": "LLM Calls by Surface", "description": "chat dependencies split by cloud_RoleName — copilot-chat (VS Code) vs github-copilot (CLI).",
+      "type": "timeseries", "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 }, "id": 5,
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "${datasource}" },
+      "targets": [{ "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "${datasource}" }, "queryType": "Azure Log Analytics", "azureLogAnalytics": { "resources": ["${appi}"], "dashboardTime": true, "timeColumn": "timestamp", "resultFormat": "time_series", "query": "dependencies | where cloud_RoleName matches regex '$surface' | extend op=tostring(customDimensions['gen_ai.operation.name']) | where op == 'chat' | summarize Calls=count() by bin(timestamp, 5m), cloud_RoleName | order by timestamp asc" }, "refId": "A" }],
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 80, "stacking": { "mode": "normal" } } } },
+      "options": { "legend": { "displayMode": "table", "calcs": ["sum"], "placement": "bottom" } }
+    },
+    {
+      "title": "Cache Hit vs Miss Over Time", "description": "Hits = cache reads, Misses = cache creations.",
+      "type": "timeseries", "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 }, "id": 6,
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "${datasource}" },
+      "targets": [{ "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "${datasource}" }, "queryType": "Azure Log Analytics", "azureLogAnalytics": { "resources": ["${appi}"], "dashboardTime": true, "timeColumn": "timestamp", "resultFormat": "time_series", "query": "dependencies | where cloud_RoleName matches regex '$surface' | extend cr=toint(customDimensions['gen_ai.usage.cache_read.input_tokens']), cc=toint(customDimensions['gen_ai.usage.cache_creation.input_tokens']) | summarize Hits=countif(cr > 0), Misses=countif(cc > 0) by bin(timestamp, 5m) | order by timestamp asc" }, "refId": "A" }],
+      "fieldConfig": {
+        "defaults": { "custom": { "drawStyle": "line", "fillOpacity": 30, "lineWidth": 2 } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Hits" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Misses" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "table", "calcs": ["sum"], "placement": "bottom" } }
+    },
+    { "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 }, "id": 102, "title": "Model performance", "type": "row" },
+    {
+      "title": "Calls by Model", "type": "timeseries", "gridPos": { "h": 8, "w": 12, "x": 0, "y": 15 }, "id": 7,
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "${datasource}" },
+      "targets": [{ "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "${datasource}" }, "queryType": "Azure Log Analytics", "azureLogAnalytics": { "resources": ["${appi}"], "dashboardTime": true, "timeColumn": "timestamp", "resultFormat": "time_series", "query": "dependencies | where cloud_RoleName matches regex '$surface' | extend op=tostring(customDimensions['gen_ai.operation.name']), model=tostring(customDimensions['gen_ai.request.model']) | where op == 'chat' | summarize Calls=count() by bin(timestamp, 5m), model | order by timestamp asc" }, "refId": "A" }],
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 80, "stacking": { "mode": "normal" } } } },
+      "options": { "legend": { "displayMode": "table", "calcs": ["sum"], "placement": "bottom" } }
+    },
+    {
+      "title": "p50 Response Duration by Model (ms)", "type": "timeseries", "gridPos": { "h": 8, "w": 12, "x": 12, "y": 15 }, "id": 8,
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "${datasource}" },
+      "targets": [{ "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "${datasource}" }, "queryType": "Azure Log Analytics", "azureLogAnalytics": { "resources": ["${appi}"], "dashboardTime": true, "timeColumn": "timestamp", "resultFormat": "time_series", "query": "dependencies | where cloud_RoleName matches regex '$surface' | extend op=tostring(customDimensions['gen_ai.operation.name']), model=tostring(customDimensions['gen_ai.request.model']) | where op == 'chat' | summarize p50_ms=percentile(duration, 50) by bin(timestamp, 5m), model | order by timestamp asc" }, "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "ms", "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 } } },
+      "options": { "legend": { "displayMode": "table", "calcs": ["mean"], "placement": "bottom" } }
+    },
+    { "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 }, "id": 103, "title": "Tool usage", "type": "row" },
+    {
+      "title": "Top Tools", "type": "timeseries", "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 }, "id": 9,
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "${datasource}" },
+      "targets": [{ "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "${datasource}" }, "queryType": "Azure Log Analytics", "azureLogAnalytics": { "resources": ["${appi}"], "dashboardTime": true, "timeColumn": "timestamp", "resultFormat": "time_series", "query": "dependencies | where cloud_RoleName matches regex '$surface' | extend op=tostring(customDimensions['gen_ai.operation.name']), tool=tostring(customDimensions['gen_ai.tool.name']) | where op == 'execute_tool' | summarize Calls=count() by bin(timestamp, 5m), tool | order by timestamp asc" }, "refId": "A" }],
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 80, "stacking": { "mode": "normal" } } } },
+      "options": { "legend": { "displayMode": "table", "calcs": ["sum"], "placement": "bottom" } }
+    },
+    {
+      "title": "Tokens In/Out Over Time", "type": "timeseries", "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 }, "id": 13,
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "${datasource}" },
+      "targets": [{ "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "${datasource}" }, "queryType": "Azure Log Analytics", "azureLogAnalytics": { "resources": ["${appi}"], "dashboardTime": true, "timeColumn": "timestamp", "resultFormat": "time_series", "query": "dependencies | where cloud_RoleName matches regex '$surface' | extend op=tostring(customDimensions['gen_ai.operation.name']), inTok=toint(customDimensions['gen_ai.usage.input_tokens']), outTok=toint(customDimensions['gen_ai.usage.output_tokens']) | where op == 'chat' | summarize InputTokens=sum(inTok), OutputTokens=sum(outTok) by bin(timestamp, 5m) | order by timestamp asc" }, "refId": "A" }],
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 } } },
+      "options": { "legend": { "displayMode": "table", "calcs": ["sum"], "placement": "bottom" } }
+    },
+    { "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 32 }, "id": 104, "title": "Trace details", "type": "row" },
+    {
+      "title": "Recent LLM Calls (with surface & cache info)", "type": "table", "gridPos": { "h": 10, "w": 24, "x": 0, "y": 33 }, "id": 11,
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "${datasource}" },
+      "targets": [{ "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "${datasource}" }, "queryType": "Azure Log Analytics", "azureLogAnalytics": { "resources": ["${appi}"], "dashboardTime": true, "timeColumn": "timestamp", "resultFormat": "table", "query": "dependencies | where cloud_RoleName matches regex '$surface' | extend op=tostring(customDimensions['gen_ai.operation.name']), model=tostring(customDimensions['gen_ai.request.model']), cacheRead=toint(customDimensions['gen_ai.usage.cache_read.input_tokens']), cacheCreation=toint(customDimensions['gen_ai.usage.cache_creation.input_tokens']) | where op == 'chat' | project timestamp, surface=cloud_RoleName, model, cacheRead, cacheCreation, duration_ms=duration | top 50 by timestamp desc" }, "refId": "A" }],
+      "options": { "showHeader": true, "sortBy": [{ "desc": true, "displayName": "timestamp" }] }
+    },
+    { "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 43 }, "id": 105, "title": "Reference", "type": "row" },
+    {
+      "title": "Surfaces, selector & KQL", "type": "text", "gridPos": { "h": 9, "w": 24, "x": 0, "y": 44 }, "id": 12,
+      "options": {
+        "mode": "markdown",
+        "content": "## Setup\n\n1. Import this dashboard into Grafana with an **Azure Monitor** data source that can read your Application Insights resource (Monitoring Reader).\n2. Set the **Application Insights resource ID** variable, e.g. `/subscriptions/<sub>/resourceGroups/rg-ghcp-otel/providers/microsoft.insights/components/ghcpotel-appi` (get it with `az monitor app-insights component show -g <rg> -a <name> --query id -o tsv`).\n3. Pick a **Copilot surface**.\n\n## GitHub Copilot surfaces\n\n| Surface | `cloud_RoleName` |\n|---------|------------------|\n| VS Code Copilot Chat | `copilot-chat` |\n| GitHub Copilot CLI | `github-copilot` |\n\nCopilot spans land in the **`dependencies`** table; `gen_ai.*` values are in `customDimensions`. The **Copilot surface** selector maps to a regex on `cloud_RoleName` (*All* = `copilot-chat|github-copilot`).\n\n## KQL check (Logs)\n\n```kusto\ndependencies\n| where timestamp > ago(1h)\n| where cloud_RoleName matches regex 'copilot-chat|github-copilot'\n| summarize count() by cloud_RoleName, tostring(customDimensions['gen_ai.operation.name'])\n```\n\nThe official Azure **GitHub Copilot** gallery dashboard covers only `copilot-chat`; this dashboard adds the **CLI** (`github-copilot`) via the surface selector."
+      }
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["copilot", "opentelemetry", "github-copilot", "vscode", "copilot-cli", "application-insights"],
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "GitHub Copilot OTel — All Surfaces (Application Insights / KQL)",
+  "uid": "copilot-otel-appinsights",
+  "version": 1
+}
