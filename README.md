@@ -156,6 +156,19 @@ setx COPILOT_OTEL_ENABLED        "true"
 > - Going direct to the cloud (C, D) means no collector in the path to redact/filter content, so
 >   keep content capture off and treat the endpoint token as a secret.
 
+### GitHub Copilot CLI
+
+The [**GitHub Copilot CLI**](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference#opentelemetry-monitoring)
+emits the same OpenTelemetry signals and reads the **same `OTEL_*` environment variables** - so the
+cloud setup above (`OTEL_EXPORTER_OTLP_ENDPOINT` + `OTEL_EXPORTER_OTLP_HEADERS` +
+`COPILOT_OTEL_ENABLED=true`) enables it too. Just run `copilot` from a shell that has those vars.
+
+One difference: the CLI defaults `OTEL_SERVICE_NAME` to `github-copilot` (VS Code uses `copilot-chat`).
+Set `OTEL_SERVICE_NAME=copilot-chat` to share a single dashboard, or query `github-copilot`
+separately to tell the CLI and the editor apart. Content capture in the CLI is a different flag,
+`OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` (default `false`). See the
+[Copilot CLI OpenTelemetry monitoring reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference#opentelemetry-monitoring).
+
 ---
 
 ## Option A - Local (Docker, no cloud)
@@ -426,6 +439,7 @@ push the config as **managed settings via Microsoft Intune** so it isn't opt-in:
 ## References
 
 - [Monitor agent usage with OpenTelemetry (VS Code docs)](https://code.visualstudio.com/docs/agents/guides/monitoring-agents)
+- [GitHub Copilot CLI - OpenTelemetry monitoring](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference#opentelemetry-monitoring)
 - [Monitor AI coding agents with Grafana (Microsoft Learn)](https://learn.microsoft.com/en-us/azure/managed-grafana/grafana-opentelemetry-app-insights)
 - [Azure Monitor dashboards with Grafana](https://learn.microsoft.com/en-us/azure/azure-monitor/visualize/visualize-use-grafana-dashboards)
 - [Grafana Cloud OTLP endpoint](https://grafana.com/docs/grafana-cloud/send-data/otlp/)
