@@ -1,5 +1,7 @@
 # You can't tune what you can't see: prompt‑cache observability for GitHub Copilot with OpenTelemetry
 
+![Cover — prompt-cache observability for GitHub Copilot with OpenTelemetry (VS Code + the CLI)](images/article-cover.png)
+
 Open VS Code, ask Copilot Chat one question, and if you crack open the debug view you can watch
 prompt‑cache tokens tick past for that single call. That's exactly enough visibility for one developer,
 on one machine, for one prompt. It stops being enough the moment you want to answer a sharper question:

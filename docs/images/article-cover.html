@@ -1,0 +1,114 @@
+<!doctype html>
+<!-- Source for docs/images/article-cover.png. Render with Playwright at 1200x630 (2x). -->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<style>
+  :root{
+    --bg:#0a0e1a; --panel:#0f1524; --line:rgba(255,255,255,.06);
+    --ink:#eef3fb; --muted:#8b97ab; --faint:#5b6678;
+    --orange:#f97316; --hit:#73bf69; --miss:#ff9830; --blue:#4c8dff; --violet:#a06bff;
+    --mono:ui-monospace,"Cascadia Code","Cascadia Mono",Consolas,"Courier New",monospace;
+    --sans:"Segoe UI Variable Display","Segoe UI",system-ui,-apple-system,Arial,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:1200px;height:630px}
+  .stage{
+    position:relative;width:1200px;height:630px;overflow:hidden;background:var(--bg);
+    font-family:var(--sans);color:var(--ink);
+    background-image:
+      radial-gradient(900px 420px at 88% -8%, rgba(249,115,22,.16), transparent 60%),
+      radial-gradient(760px 460px at -6% 112%, rgba(76,141,255,.14), transparent 60%);
+  }
+  /* faint grid */
+  .grid{position:absolute;inset:0;
+    background-image:
+      linear-gradient(var(--line) 1px,transparent 1px),
+      linear-gradient(90deg,var(--line) 1px,transparent 1px);
+    background-size:48px 48px;mask-image:linear-gradient(180deg,rgba(0,0,0,.65),rgba(0,0,0,.15));}
+  .wrap{position:absolute;inset:0;display:flex;padding:62px 64px;gap:40px}
+  .left{flex:1 1 62%;display:flex;flex-direction:column;justify-content:space-between}
+  .right{flex:0 0 380px;display:flex;align-items:center}
+
+  .kicker{font-family:var(--mono);font-size:15px;letter-spacing:.32em;text-transform:uppercase;
+    color:var(--orange);font-weight:600;display:flex;align-items:center;gap:12px}
+  .kicker .dot{width:8px;height:8px;border-radius:50%;background:var(--hit);box-shadow:0 0 12px var(--hit)}
+
+  h1{font-size:66px;line-height:1.02;font-weight:800;letter-spacing:-1.5px;margin-top:22px}
+  h1 .u{color:var(--orange);position:relative;white-space:nowrap}
+  h1 .u:after{content:"";position:absolute;left:0;right:0;bottom:2px;height:10px;
+    background:linear-gradient(90deg,var(--orange),rgba(249,115,22,0));border-radius:3px;opacity:.35}
+  .sub{margin-top:26px;font-size:24px;line-height:1.42;color:var(--muted);max-width:600px;font-weight:400}
+  .sub b{color:var(--ink);font-weight:600}
+  .arrow{color:var(--faint);padding:0 6px}
+
+  .pills{display:flex;gap:12px;margin-top:30px;flex-wrap:wrap}
+  .pill{font-family:var(--mono);font-size:15px;padding:9px 14px;border-radius:999px;
+    border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--ink);display:flex;gap:9px;align-items:center}
+  .pill .tag{color:var(--faint)}
+  .pill .d{width:8px;height:8px;border-radius:50%}
+  .pill .d.vs{background:var(--blue)} .pill .d.cli{background:var(--violet)}
+
+  .foot{display:flex;align-items:center;gap:16px;color:var(--faint);font-size:15px;font-family:var(--mono);white-space:nowrap}
+  .foot .brand{color:var(--muted)}
+  .sep{width:5px;height:5px;border-radius:50%;background:var(--faint);opacity:.6}
+
+  /* right: cache tile */
+  .tile{width:100%;background:linear-gradient(180deg,#101827,#0c1220);border:1px solid var(--line);
+    border-radius:20px;padding:28px 26px;box-shadow:0 24px 60px rgba(0,0,0,.45)}
+  .tile .cap{font-family:var(--mono);font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+  .big{display:flex;align-items:baseline;gap:8px;margin-top:6px}
+  .big .n{font-size:92px;font-weight:800;letter-spacing:-3px;line-height:1;color:var(--hit)}
+  .big .p{font-size:34px;font-weight:700;color:var(--hit)}
+  .lbl{font-size:17px;color:var(--muted);margin-top:6px}
+  .bars{display:flex;align-items:flex-end;gap:7px;height:96px;margin-top:22px}
+  .bars .b{flex:1;border-radius:4px 4px 2px 2px;opacity:.92}
+  .legend{display:flex;gap:18px;margin-top:16px;font-family:var(--mono);font-size:13px;color:var(--muted)}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:7px;vertical-align:middle}
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="grid"></div>
+    <div class="wrap">
+      <div class="left">
+        <div>
+          <div class="kicker"><span class="dot"></span>OpenTelemetry · GitHub Copilot</div>
+          <h1>You can't tune<br/>what you can't <span class="u">see</span>.</h1>
+          <div class="sub"><b>Prompt-cache observability</b> for GitHub Copilot<br/>
+            VS Code <span class="arrow">+</span> the CLI <span class="arrow">→</span> one Grafana dashboard.</div>
+          <div class="pills">
+            <span class="pill"><span class="d vs"></span>VS&nbsp;Code<span class="tag">service.name=copilot-chat</span></span>
+            <span class="pill"><span class="d cli"></span>CLI<span class="tag">service.name=github-copilot</span></span>
+          </div>
+        </div>
+        <div class="foot">
+          <span class="brand">github.com/webmaxru/copilot-otel-grafana</span>
+          <span class="sep"></span><span>OpenTelemetry&nbsp;→&nbsp;Grafana</span>
+        </div>
+      </div>
+      <div class="right">
+        <div class="tile">
+          <div class="cap">prompt cache</div>
+          <div class="big"><span class="n">63</span><span class="p">%</span></div>
+          <div class="lbl">cache hit rate</div>
+          <div class="bars">
+            <div class="b" style="height:44%;background:var(--hit)"></div>
+            <div class="b" style="height:70%;background:var(--hit)"></div>
+            <div class="b" style="height:30%;background:var(--miss)"></div>
+            <div class="b" style="height:82%;background:var(--hit)"></div>
+            <div class="b" style="height:56%;background:var(--hit)"></div>
+            <div class="b" style="height:38%;background:var(--miss)"></div>
+            <div class="b" style="height:92%;background:var(--hit)"></div>
+            <div class="b" style="height:48%;background:var(--miss)"></div>
+            <div class="b" style="height:74%;background:var(--hit)"></div>
+            <div class="b" style="height:60%;background:var(--hit)"></div>
+          </div>
+          <div class="legend"><span><i style="background:var(--hit)"></i>cache_read (hit)</span>
+            <span><i style="background:var(--miss)"></i>cache_creation (miss)</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
