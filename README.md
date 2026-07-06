@@ -1,10 +1,11 @@
-# OpenTelemetry for GitHub Copilot — all surfaces (VS Code + CLI)
+# OpenTelemetry for GitHub Copilot — VS Code + the CLI
 
-A hands-on experiment and reference implementation for wiring **OpenTelemetry** through **every
-GitHub Copilot surface that emits it** — today that's **VS Code Copilot Chat** and the **GitHub
-Copilot CLI** — and visualizing the result in Grafana. It's built to be the working foundation for a
-longread article: each backend is a self-contained, reproducible setup, and the dashboards are
-surface-aware so you can compare VS Code vs the CLI (or look at both together).
+A hands-on experiment and reference implementation for wiring **OpenTelemetry** through the GitHub
+Copilot surfaces that **actually emit customer-collectable OTel today** — **VS Code Copilot Chat** and
+the **GitHub Copilot CLI** — and visualizing the result in Grafana. (Other surfaces don't expose it
+yet; the coverage table below is the honest map.) It's built to be the working foundation for a
+longread article: each backend is a self-contained, reproducible setup, and the dashboards let you
+compare VS Code vs the CLI (or look at both together).
 
 The running theme is **prompt-cache efficiency** — how often Copilot reads from the prompt cache
 (a *hit*: faster, cheaper, more stable) versus rebuilds it (a *miss*) — plus token usage, model mix,
@@ -19,21 +20,27 @@ so the same queries work for both surfaces and any OTel-compatible backend.
 
 This repo is organized around two independent choices.
 
-### 1. Surfaces — *what* is emitting telemetry
+### 1. Surfaces — *what* emits OpenTelemetry
 
-| Surface | `resource.service.name` | Signals | How to enable |
-|---------|-------------------------|---------|---------------|
-| **VS Code Copilot Chat** | `copilot-chat` | traces, metrics, events | `github.copilot.chat.otel.*` settings **or** `OTEL_*` env vars |
-| **GitHub Copilot CLI** | `github-copilot` | traces, metrics | `OTEL_*` env vars (`COPILOT_OTEL_ENABLED=true`) |
+Only some Copilot surfaces expose OTel you can export to your own backend today. The honest map
+(mid-2026):
 
-Both surfaces follow the **same GenAI conventions** — identical `gen_ai.*` attributes
-(`operation.name`, `request.model`, `usage.cache_read.input_tokens`, ...). They differ only in
-`resource.service.name`, which is exactly what the dashboards use as a **surface selector**
-(`All` / `VS Code` / `Copilot CLI`). Keep `OTEL_SERVICE_NAME` **unset** so each surface keeps its
-distinct default name.
+| Surface | Export OTel to your backend? | `resource.service.name` | How |
+|---------|------------------------------|-------------------------|-----|
+| **VS Code Copilot Chat** | ✅ Yes | `copilot-chat` | `github.copilot.chat.otel.*` settings or `OTEL_*` env vars |
+| **GitHub Copilot CLI** | ✅ Yes | `github-copilot` | `OTEL_*` env vars (`COPILOT_OTEL_ENABLED=true`) |
+| **Copilot SDK** (Node/Py/Go/.NET/Java/Rust) | ✅ Yes — for apps you build | configurable | `TelemetryConfig` (drives the CLI process) |
+| **Visual Studio** extension | ❌ Not today | — | — |
+| **JetBrains** plugins | ❌ Not today | — | Rider's own OTel plugin instruments *your app*, not Copilot |
+| **Copilot app** (desktop) | ⚠️ Not documented | — | agent-native; likely shares the CLI core |
+| **Cloud coding agent** (opens PRs) | ❌ Not directly | — | server-side; the *client* only emits session counters |
 
-> Other Copilot surfaces (JetBrains, Visual Studio, Xcode, ...) don't emit OTel today. When they do,
-> they'll slot into the same model: a new `service.name` and a new option in the surface selector.
+So this repo is scoped to the two surfaces you can actually collect from — **VS Code (`copilot-chat`)**
+and **the CLI (`github-copilot`)**. Both follow the **same GenAI conventions** (identical `gen_ai.*`
+attributes), differing only in `resource.service.name` — which is exactly what the dashboards use as a
+**surface selector** (`All (VS Code + CLI)` / `VS Code` / `Copilot CLI`). Keep `OTEL_SERVICE_NAME`
+**unset** so each surface keeps its distinct default name. When another surface adopts these
+conventions, it slots in: a new `service.name`, a new option in the selector.
 
 ### 2. Backends — *where* the telemetry goes
 
@@ -166,9 +173,9 @@ reads the **same `OTEL_*` environment variables** — so the cloud block above e
 > to `true` and full prompts, responses, and code land in the traces (fine for debugging your own,
 > risky otherwise). Going direct to the cloud (C, D) means no collector to scrub content.
 
-> **Enable *all* surfaces at once (the fleet shape).** Set the four env vars once at the user/machine
-> level and every Copilot surface reports: VS Code as `copilot-chat`, the CLI as `github-copilot`. This
-> is exactly what Option D + the surface selector are built for.
+> **Enable both surfaces at once (the fleet shape).** Set the four env vars once at the user/machine
+> level and both surfaces report: VS Code as `copilot-chat`, the CLI as `github-copilot`. This is
+> exactly what Option D + the surface selector are built for.
 
 ---
 
@@ -203,8 +210,8 @@ Use Copilot Chat and/or run `copilot` for a few minutes.
 
 ### 4. View the dashboard
 
-Open **http://localhost:3001** → Dashboards → **GitHub Copilot OTel — All Surfaces (Tempo / TraceQL)**.
-Use the **Copilot surface** dropdown to switch between *All surfaces*, *VS Code*, and *Copilot CLI*.
+Open **http://localhost:3001** → Dashboards → **GitHub Copilot OTel — VS Code + CLI (Tempo / TraceQL)**.
+Use the **Copilot surface** dropdown to switch between *All (VS Code + CLI)*, *VS Code*, and *Copilot CLI*.
 
 ### 5. Explore raw traces (Explore → Tempo)
 
@@ -365,7 +372,7 @@ Sign up at [grafana.com](https://grafana.com/). In the Grafana Cloud Portal, ope
 **Configure** on the **OpenTelemetry** tile → generate a token. It shows ready-made
 `OTEL_EXPORTER_OTLP_ENDPOINT` and `OTEL_EXPORTER_OTLP_HEADERS` values (base64 already computed).
 
-### 2. Enable ALL surfaces
+### 2. Enable both surfaces
 
 ```powershell
 setx OTEL_EXPORTER_OTLP_PROTOCOL "http/protobuf"
@@ -382,13 +389,13 @@ then use VS Code Copilot Chat and run `copilot`. Both surfaces flow to the same 
 
 Import `dashboards/tempo/copilot-otel-tempo.json` into Grafana Cloud (Dashboards → New → Import;
 pick your Grafana Cloud **Traces/Tempo** data source). Use the **Copilot surface** selector to view
-*All*, *VS Code*, or *Copilot CLI*. Or use Explore → your traces data source with the TraceQL above.
+*All (VS Code + CLI)*, *VS Code*, or *Copilot CLI*. Or use Explore → your traces data source with the TraceQL above.
 
 ---
 
 ## Dashboards (surface-aware, uploadable)
 
-Both dashboards have a **Copilot surface** template variable — *All surfaces* / *VS Code (copilot-chat)*
+Both dashboards have a **Copilot surface** template variable — *All (VS Code + CLI)* / *VS Code (copilot-chat)*
 / *Copilot CLI (github-copilot)* — that filters every panel on `resource.service.name` (TraceQL) or
 `cloud_RoleName` (KQL). They also expose a **data source** variable so you can upload them into any Grafana.
 
@@ -429,13 +436,13 @@ by the selected surface.
 
 ## Rolling this out to a team (Intune)
 
-To guarantee every developer reports telemetry from every surface, push the config as **managed
+To guarantee every developer reports telemetry from both surfaces, push the config as **managed
 settings via Microsoft Intune**:
 
 - **Local collector (B):** push the four `github.copilot.chat.otel.*` settings.
 - **Cloud endpoint (C, D):** push `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_HEADERS`, and
   `COPILOT_OTEL_ENABLED=true` as environment variables. This is the most scalable shape — developers
-  run nothing locally, and every surface (VS Code + CLI) reports automatically.
+  run nothing locally, and both surfaces (VS Code + CLI) report automatically.
 
 ## Using this repo as an article foundation
 
@@ -455,8 +462,8 @@ outliers, and comparing agent (`invoke_agent`) vs single-shot (`chat`) shapes ac
 - Original concept, local Docker stack, and dashboard by **Samuel Tauil** —
   [samueltauil/copilot-traces](https://github.com/samueltauil/copilot-traces) and the article
   [Visualizing Copilot Prompt Cache with OTel + Grafana](https://samueltauil.github.io/github-copilot/devops/2026/07/02/visualizing-copilot-prompt-cache-otel-grafana.html).
-- This fork generalizes it to **all Copilot surfaces** (VS Code + CLI) with surface-aware dashboards,
-  and adds the free **Azure Monitor "Dashboards with Grafana"** variant (Option B), an **Azure
+- This fork extends it to the Copilot **CLI** alongside VS Code — the two OTel-emitting surfaces — with
+  surface-aware dashboards, and adds the free **Azure Monitor "Dashboards with Grafana"** variant (Option B), an **Azure
   Container Apps** scale-to-zero collector (Option C), and a **Grafana Cloud** direct path (Option D).
 - Licensed under [MIT](LICENSE).
 

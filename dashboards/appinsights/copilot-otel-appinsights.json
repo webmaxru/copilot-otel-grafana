@@ -17,10 +17,10 @@
       },
       {
         "type": "custom", "name": "surface", "label": "Copilot surface", "hide": 0, "includeAll": false, "multi": false,
-        "query": "All surfaces : copilot-chat|github-copilot, VS Code (copilot-chat) : copilot-chat, Copilot CLI (github-copilot) : github-copilot",
-        "current": { "text": "All surfaces", "value": "copilot-chat|github-copilot" },
+        "query": "All (VS Code + CLI) : copilot-chat|github-copilot, VS Code (copilot-chat) : copilot-chat, Copilot CLI (github-copilot) : github-copilot",
+        "current": { "text": "All (VS Code + CLI)", "value": "copilot-chat|github-copilot" },
         "options": [
-          { "text": "All surfaces", "value": "copilot-chat|github-copilot", "selected": true },
+          { "text": "All (VS Code + CLI)", "value": "copilot-chat|github-copilot", "selected": true },
           { "text": "VS Code (copilot-chat)", "value": "copilot-chat", "selected": false },
           { "text": "Copilot CLI (github-copilot)", "value": "github-copilot", "selected": false }
         ]
@@ -131,7 +131,7 @@
   "time": { "from": "now-6h", "to": "now" },
   "timepicker": {},
   "timezone": "browser",
-  "title": "GitHub Copilot OTel — All Surfaces (Application Insights / KQL)",
+  "title": "GitHub Copilot OTel — VS Code + CLI (Application Insights / KQL)",
   "uid": "copilot-otel-appinsights",
   "version": 1
 }
