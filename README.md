@@ -432,7 +432,10 @@ by the selected surface.
 | `azure/setup-azure.ps1` | Provisions Log Analytics + Application Insights, writes `.env` |
 | `azure/deploy-collector-aca.ps1` | **Option C** — deploy the collector to Azure Container Apps |
 | `azure/teardown-azure.ps1` | Deletes the resource group |
-| `.env.example` | Template for `APPLICATIONINSIGHTS_CONNECTION_STRING` (copy to `.env`) |
+| `.env.example` | Templates for `APPLICATIONINSIGHTS_CONNECTION_STRING` (collector) + `APPINSIGHTS_CONNECTION_STRING` (site analytics) |
+| `package.json`, `build.mjs`, `src/analytics.js` | Cookieless RUM for the promo site — esbuild bundles the beacon into `docs/analytics.js`, injecting the connection string at build time |
+| `.github/workflows/deploy-pages.yml` | Builds `docs/` (injecting the connection string from a repo variable) and deploys to GitHub Pages |
+| `azure/dashboard.json`, `scripts/report.ps1` | Engagement dashboard template + terminal/Portal report for the site analytics |
 
 ## Rolling this out to a team (Intune)
 
@@ -456,6 +459,35 @@ Each section maps to a beat in a longread on Copilot observability:
 
 Good follow-up experiments: per-surface cache-hit rate over a week, model-mix drift, tool latency
 outliers, and comparing agent (`invoke_agent`) vs single-shot (`chat`) shapes across surfaces.
+
+## Watching the promo site itself (cookieless analytics)
+
+The landing page under [`docs/`](docs/) (published at **https://copilot-opentelemetry.isainative.dev/**)
+is itself instrumented with **cookieless Azure Application Insights** Real User Monitoring via
+[`@webmaxru/cookieless-insights`](https://github.com/webmaxru/cookieless-insights) — a tiny **beacon**
+(`navigator.sendBeacon`). It uses **no cookies, no local/session storage, and no persistent identifier**,
+so it needs **no consent/GDPR banner**. Telemetry goes to *our own* Application Insights
+(`ghcpotel-web-ai`), never to a third party — the same privacy stance as the rest of this repo.
+
+- **Free tier:** workspace-based (`ghcpotel-web-law`), 30-day retention, **0.16 GB/day** ingestion cap.
+- **What's collected** (metadata only — no PII, no prompts, no code): `page_view`, `opened_via_shared_link`
+  (UTM/referrer), `cta_click`, `outbound_click`, `nav_click`, `section_view` (scroll depth, **debounced**),
+  and an `engagement` summary (dwell time + max scroll) on exit.
+- **Build-time injection:** the connection string is a **public client key**, injected at build time from
+  `APPINSIGHTS_CONNECTION_STRING` — locally via `.env`, in CI from the repo **variable** of the same name
+  (never a secret, never committed). `npm run build` bundles `src/analytics.js` → `docs/analytics.js`
+  (esbuild); the **GitHub Actions** workflow ([`deploy-pages.yml`](.github/workflows/deploy-pages.yml)) does
+  this on every push and deploys `docs/` to Pages.
+- **Kill switch (one line):** set `ANALYTICS_ENABLED = false` at the top of
+  [`src/analytics.js`](src/analytics.js) (or `init({ …, enabled: false })`) and redeploy — telemetry stops.
+- **Report:**
+  ```powershell
+  npm run report
+  # or directly:
+  pwsh scripts/report.ps1 -ResourceGroup rg-ghcp-otel -AppInsights ghcpotel-web-ai -Days 30 -Open
+  ```
+  prints page views, sessions, per-visit dwell, key events, top pages, geo, and browser/OS, and opens the
+  **`cookieless-insights-dashboard`** in the Azure Portal. Data appears ~1–3 minutes after a visit.
 
 ## Credits
 

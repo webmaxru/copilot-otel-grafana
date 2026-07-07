@@ -3,5 +3,9 @@ tempo-data/
 .env.aca
 
 
+# Node / build
+node_modules/
+docs/analytics.js
+
 # APM dependencies
 apm_modules/

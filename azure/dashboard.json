@@ -1,0 +1,237 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "description": "Azure Portal dashboard for cookieless-insights: Real User Monitoring engagement + key events from Application Insights. Deploy with `cookieless-insights dashboard` or `az deployment group create`."
+  },
+  "parameters": {
+    "appInsightsId": {
+      "type": "string",
+      "metadata": { "description": "Resource ID of the Application Insights component to query." }
+    },
+    "appInsightsName": {
+      "type": "string",
+      "defaultValue": "cookieless-insights",
+      "metadata": { "description": "Display name (tile subtitle)." }
+    },
+    "dashboardName": {
+      "type": "string",
+      "defaultValue": "cookieless-insights-dashboard"
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]"
+    }
+  },
+  "variables": {
+    "scope": { "resourceIds": ["[parameters('appInsightsId')]"] }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Portal/dashboards",
+      "apiVersion": "2020-09-01-preview",
+      "name": "[parameters('dashboardName')]",
+      "location": "[parameters('location')]",
+      "tags": { "hidden-title": "Cookieless Insights — Engagement & Key Events" },
+      "properties": {
+        "lenses": [
+          {
+            "order": 0,
+            "parts": [
+              {
+                "position": { "x": 0, "y": 0, "colSpan": 12, "rowSpan": 1 },
+                "metadata": {
+                  "inputs": [],
+                  "type": "Extension/HubsExtension/PartType/MarkdownPart",
+                  "settings": {
+                    "content": {
+                      "settings": {
+                        "content": "## Cookieless Insights — engagement & key events\nCookieless Real User Monitoring (no cookie / GDPR banner). Each tile shows the last 30 days. Terminal report: `cookieless-insights report`.",
+                        "title": "",
+                        "subtitle": ""
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "position": { "x": 0, "y": 1, "colSpan": 8, "rowSpan": 4 },
+                "metadata": {
+                  "inputs": [
+                    { "name": "resourceTypeMode", "isOptional": true },
+                    { "name": "ComponentId", "value": "[parameters('appInsightsId')]", "isOptional": true },
+                    { "name": "Scope", "value": "[variables('scope')]", "isOptional": true },
+                    { "name": "PartId", "value": "bfeced32-ad27-43a7-bcbf-e422df18a155", "isOptional": true },
+                    { "name": "Version", "value": "2.0", "isOptional": true },
+                    { "name": "TimeRange", "value": "P30D", "isOptional": true },
+                    { "name": "DashboardId", "isOptional": true },
+                    { "name": "DraftRequestParameters", "isOptional": true },
+                    { "name": "Query", "value": "pageViews | summarize PageViews=count(), Sessions=dcount(session_Id) by bin(timestamp, 1d) | sort by timestamp asc", "isOptional": true },
+                    { "name": "ControlType", "value": "FrameControlChart", "isOptional": true },
+                    { "name": "SpecificChart", "value": "Line", "isOptional": true },
+                    { "name": "PartTitle", "value": "Page views & sessions per day", "isOptional": true },
+                    { "name": "PartSubTitle", "value": "[parameters('appInsightsName')]", "isOptional": true },
+                    {
+                      "name": "Dimensions",
+                      "value": {
+                        "xAxis": { "name": "timestamp", "type": "datetime" },
+                        "yAxis": [
+                          { "name": "PageViews", "type": "long" },
+                          { "name": "Sessions", "type": "long" }
+                        ],
+                        "splitBy": [],
+                        "aggregation": "Sum"
+                      },
+                      "isOptional": true
+                    },
+                    { "name": "LegendOptions", "value": { "isEnabled": true, "position": "Bottom" }, "isOptional": true },
+                    { "name": "IsQueryContainTimeRange", "value": false, "isOptional": true }
+                  ],
+                  "type": "Extension/Microsoft_OperationsManagementSuite_Workspace/PartType/LogsDashboardPart",
+                  "settings": {},
+                  "asset": { "idInputName": "ComponentId", "type": "ApplicationInsights" }
+                }
+              },
+              {
+                "position": { "x": 8, "y": 1, "colSpan": 4, "rowSpan": 4 },
+                "metadata": {
+                  "inputs": [
+                    { "name": "resourceTypeMode", "isOptional": true },
+                    { "name": "ComponentId", "value": "[parameters('appInsightsId')]", "isOptional": true },
+                    { "name": "Scope", "value": "[variables('scope')]", "isOptional": true },
+                    { "name": "PartId", "value": "482a0e12-a41d-402d-8294-f3320ad9e53a", "isOptional": true },
+                    { "name": "Version", "value": "2.0", "isOptional": true },
+                    { "name": "TimeRange", "value": "P30D", "isOptional": true },
+                    { "name": "DashboardId", "isOptional": true },
+                    { "name": "DraftRequestParameters", "isOptional": true },
+                    { "name": "Query", "value": "union pageViews, customEvents | summarize events=count(), start=min(timestamp), stop=max(timestamp) by session_Id | extend dwellSec=datetime_diff('second', stop, start) | summarize Sessions=count(), MedianEventsPerSession=percentile(events,50), MedianDwellSec=percentile(dwellSec,50), AvgDwellSec=round(avg(dwellSec),1)", "isOptional": true },
+                    { "name": "ControlType", "value": "AnalyticsGrid", "isOptional": true },
+                    { "name": "SpecificChart", "isOptional": true },
+                    { "name": "PartTitle", "value": "Engagement (per visit)", "isOptional": true },
+                    { "name": "PartSubTitle", "value": "sessions · events/session · dwell time", "isOptional": true },
+                    { "name": "Dimensions", "isOptional": true },
+                    { "name": "LegendOptions", "isOptional": true },
+                    { "name": "IsQueryContainTimeRange", "value": false, "isOptional": true }
+                  ],
+                  "type": "Extension/Microsoft_OperationsManagementSuite_Workspace/PartType/LogsDashboardPart",
+                  "settings": {},
+                  "asset": { "idInputName": "ComponentId", "type": "ApplicationInsights" }
+                }
+              },
+              {
+                "position": { "x": 0, "y": 5, "colSpan": 6, "rowSpan": 5 },
+                "metadata": {
+                  "inputs": [
+                    { "name": "resourceTypeMode", "isOptional": true },
+                    { "name": "ComponentId", "value": "[parameters('appInsightsId')]", "isOptional": true },
+                    { "name": "Scope", "value": "[variables('scope')]", "isOptional": true },
+                    { "name": "PartId", "value": "527e972e-d87f-4b2a-ba39-1894477a1151", "isOptional": true },
+                    { "name": "Version", "value": "2.0", "isOptional": true },
+                    { "name": "TimeRange", "value": "P30D", "isOptional": true },
+                    { "name": "DashboardId", "isOptional": true },
+                    { "name": "DraftRequestParameters", "isOptional": true },
+                    { "name": "Query", "value": "customEvents | summarize Events=count(), Sessions=dcount(session_Id) by Event=name | sort by Events desc", "isOptional": true },
+                    { "name": "ControlType", "value": "AnalyticsGrid", "isOptional": true },
+                    { "name": "SpecificChart", "isOptional": true },
+                    { "name": "PartTitle", "value": "Key events", "isOptional": true },
+                    { "name": "PartSubTitle", "value": "custom events by name", "isOptional": true },
+                    { "name": "Dimensions", "isOptional": true },
+                    { "name": "LegendOptions", "isOptional": true },
+                    { "name": "IsQueryContainTimeRange", "value": false, "isOptional": true }
+                  ],
+                  "type": "Extension/Microsoft_OperationsManagementSuite_Workspace/PartType/LogsDashboardPart",
+                  "settings": {},
+                  "asset": { "idInputName": "ComponentId", "type": "ApplicationInsights" }
+                }
+              },
+              {
+                "position": { "x": 6, "y": 5, "colSpan": 6, "rowSpan": 5 },
+                "metadata": {
+                  "inputs": [
+                    { "name": "resourceTypeMode", "isOptional": true },
+                    { "name": "ComponentId", "value": "[parameters('appInsightsId')]", "isOptional": true },
+                    { "name": "Scope", "value": "[variables('scope')]", "isOptional": true },
+                    { "name": "PartId", "value": "0e2c3f63-c9da-4b88-ac2b-1797094719ce", "isOptional": true },
+                    { "name": "Version", "value": "2.0", "isOptional": true },
+                    { "name": "TimeRange", "value": "P30D", "isOptional": true },
+                    { "name": "DashboardId", "isOptional": true },
+                    { "name": "DraftRequestParameters", "isOptional": true },
+                    { "name": "Query", "value": "pageViews | summarize Views=count(), Sessions=dcount(session_Id) by Page=name | sort by Views desc | take 15", "isOptional": true },
+                    { "name": "ControlType", "value": "AnalyticsGrid", "isOptional": true },
+                    { "name": "SpecificChart", "isOptional": true },
+                    { "name": "PartTitle", "value": "Top pages", "isOptional": true },
+                    { "name": "PartSubTitle", "value": "page views by name", "isOptional": true },
+                    { "name": "Dimensions", "isOptional": true },
+                    { "name": "LegendOptions", "isOptional": true },
+                    { "name": "IsQueryContainTimeRange", "value": false, "isOptional": true }
+                  ],
+                  "type": "Extension/Microsoft_OperationsManagementSuite_Workspace/PartType/LogsDashboardPart",
+                  "settings": {},
+                  "asset": { "idInputName": "ComponentId", "type": "ApplicationInsights" }
+                }
+              },
+              {
+                "position": { "x": 0, "y": 10, "colSpan": 6, "rowSpan": 4 },
+                "metadata": {
+                  "inputs": [
+                    { "name": "resourceTypeMode", "isOptional": true },
+                    { "name": "ComponentId", "value": "[parameters('appInsightsId')]", "isOptional": true },
+                    { "name": "Scope", "value": "[variables('scope')]", "isOptional": true },
+                    { "name": "PartId", "value": "cbd64276-0e1f-4528-bd12-afe381b549b9", "isOptional": true },
+                    { "name": "Version", "value": "2.0", "isOptional": true },
+                    { "name": "TimeRange", "value": "P30D", "isOptional": true },
+                    { "name": "DashboardId", "isOptional": true },
+                    { "name": "DraftRequestParameters", "isOptional": true },
+                    { "name": "Query", "value": "pageViews | summarize Sessions=dcount(session_Id) by Country=client_CountryOrRegion | sort by Sessions desc | take 15", "isOptional": true },
+                    { "name": "ControlType", "value": "AnalyticsGrid", "isOptional": true },
+                    { "name": "SpecificChart", "isOptional": true },
+                    { "name": "PartTitle", "value": "Top countries", "isOptional": true },
+                    { "name": "PartSubTitle", "value": "sessions by geo", "isOptional": true },
+                    { "name": "Dimensions", "isOptional": true },
+                    { "name": "LegendOptions", "isOptional": true },
+                    { "name": "IsQueryContainTimeRange", "value": false, "isOptional": true }
+                  ],
+                  "type": "Extension/Microsoft_OperationsManagementSuite_Workspace/PartType/LogsDashboardPart",
+                  "settings": {},
+                  "asset": { "idInputName": "ComponentId", "type": "ApplicationInsights" }
+                }
+              },
+              {
+                "position": { "x": 6, "y": 10, "colSpan": 6, "rowSpan": 4 },
+                "metadata": {
+                  "inputs": [
+                    { "name": "resourceTypeMode", "isOptional": true },
+                    { "name": "ComponentId", "value": "[parameters('appInsightsId')]", "isOptional": true },
+                    { "name": "Scope", "value": "[variables('scope')]", "isOptional": true },
+                    { "name": "PartId", "value": "aeb59a2a-06ae-4f65-a944-c994e875e53d", "isOptional": true },
+                    { "name": "Version", "value": "2.0", "isOptional": true },
+                    { "name": "TimeRange", "value": "P30D", "isOptional": true },
+                    { "name": "DashboardId", "isOptional": true },
+                    { "name": "DraftRequestParameters", "isOptional": true },
+                    { "name": "Query", "value": "pageViews | summarize Sessions=dcount(session_Id) by Browser=client_Browser, OS=client_OS | sort by Sessions desc | take 20", "isOptional": true },
+                    { "name": "ControlType", "value": "AnalyticsGrid", "isOptional": true },
+                    { "name": "SpecificChart", "isOptional": true },
+                    { "name": "PartTitle", "value": "Browser & OS", "isOptional": true },
+                    { "name": "PartSubTitle", "value": "sessions by client", "isOptional": true },
+                    { "name": "Dimensions", "isOptional": true },
+                    { "name": "LegendOptions", "isOptional": true },
+                    { "name": "IsQueryContainTimeRange", "value": false, "isOptional": true }
+                  ],
+                  "type": "Extension/Microsoft_OperationsManagementSuite_Workspace/PartType/LogsDashboardPart",
+                  "settings": {},
+                  "asset": { "idInputName": "ComponentId", "type": "ApplicationInsights" }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "outputs": {
+    "dashboardId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Portal/dashboards', parameters('dashboardName'))]"
+    }
+  }
+}

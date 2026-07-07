@@ -3,7 +3,6 @@ generated_at: '2026-07-05T21:20:46.198340+00:00'
 apm_version: 0.23.1
 dependencies:
 - repo_url: anthropics/skills
-  name: frontend-design
   host: github.com
   resolved_commit: 9d2f1ae187231d8199c64b5b762e1bdf2244733d
   version: 1.0.0
@@ -18,8 +17,8 @@ dependencies:
     .agents/skills/frontend-design/LICENSE.txt: sha256:0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594
     .agents/skills/frontend-design/SKILL.md: sha256:1608ea77fbb6fc30d13a97d12cfa8ebf31358d40f0dd97beed24829d6b3f45dd
   content_hash: sha256:4eabc66183767153e404b39d1b839b1c37f2d82d86f0a0d7e880a579d8d62336
+  name: frontend-design
 - repo_url: rysweet/amplihack-rs
-  name: storytelling-synthesizer
   host: github.com
   resolved_commit: b123c107c7ab2e3d436926747c135e78a90545b6
   resolved_ref: b123c107c7ab2e3d436926747c135e78a90545b6
@@ -45,8 +44,8 @@ dependencies:
     .agents/skills/storytelling-synthesizer/examples/marketing-example.md: sha256:325a2a9bd07a6935c393685d2a86b9fd67b78fec5ff18ed6c1a483562b3d4b24
     .agents/skills/storytelling-synthesizer/examples/presentation-example.md: sha256:878b1a7aa3bf15816a0de2d2b18ef4c036747682b5286e84e92b7d20c8e662a5
   content_hash: sha256:4c56c009df2a462fb0f7697c6e0369434f2d605ab57b79d6587b01020dfceef6
+  name: storytelling-synthesizer
 - repo_url: webmaxru/ai-native-dev
-  name: ai-native-dev-seo-and-agent-readiness
   host: github.com
   resolved_commit: 8deedfd0f133de32f43d8e4171ac2e5ef38cff51
   resolved_ref: main
@@ -58,8 +57,8 @@ dependencies:
   deployed_file_hashes:
     .github/prompts/seo-and-agent-readiness.prompt.md: sha256:4bcaebc8aba4d22b78a3eaf938a377e42794c43cfd67934e8c7614107d752148
   content_hash: sha256:99eeca3b1d7f2b3ea961562c65f9b693370ba5f48c79341c655f5c0617509cce
+  name: ai-native-dev-seo-and-agent-readiness
 - repo_url: webmaxru/ai-native-dev
-  name: agent-package-manager
   host: github.com
   resolved_commit: 8deedfd0f133de32f43d8e4171ac2e5ef38cff51
   version: 1.0.0
@@ -80,3 +79,18 @@ dependencies:
     .agents/skills/agent-package-manager/references/manifest-and-lockfile.md: sha256:751ba3102a04626d96cdfd0400308704e344fc7d30f9817aefc1308e0be986c8
     .agents/skills/agent-package-manager/references/troubleshooting.md: sha256:f57abc15c6c6bca5cf6f3fee02690aa68f2859fa4c58e5c8241c4e33b35e8f5f
   content_hash: sha256:6338d1772fe1fedfca979da05d61c8e74d33b1dccde1ae13a66e0308eaa9b788
+  name: agent-package-manager
+- repo_url: webmaxru/cookieless-insights
+  host: github.com
+  resolved_commit: 3f8fac1b5b7fbd73dca741bf1772826e2f5d631e
+  virtual_path: skills/cookieless-insights
+  is_virtual: true
+  package_type: claude_skill
+  deployed_files:
+  - .agents/skills/cookieless-insights
+  - .agents/skills/cookieless-insights/PROMPT.md
+  - .agents/skills/cookieless-insights/SKILL.md
+  deployed_file_hashes:
+    .agents/skills/cookieless-insights/PROMPT.md: sha256:fc632d29a3e0719dd0f9d66a26b85cc57a689f4defbe768daf975d0cbef34dc4
+    .agents/skills/cookieless-insights/SKILL.md: sha256:7da717521ac9828241497b4e9de7d4318c7ea71abfb669965f624f929d93c8cb
+  content_hash: sha256:9b71019f70cc67769711ded1e1367f8e787aebb34a5e09610dbcca4eb5499b85

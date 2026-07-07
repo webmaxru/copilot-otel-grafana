@@ -43,3 +43,15 @@ drift from the README.
   description, or social image change, update `index.html`, `site.webmanifest`, and `llms.txt` together.
   Regenerate icons with `python scripts/generate-icons.py` (don't hand-edit the PNG/ICO), and preserve
   `docs/CNAME`.
+- **Site analytics (cookieless RUM).** The promo site is instrumented with cookieless Azure Application
+  Insights via `@webmaxru/cookieless-insights` (a `navigator.sendBeacon` beacon — no cookies, no storage,
+  no persistent id, no banner). `src/analytics.js` is bundled by `npm run build` (esbuild) into
+  `docs/analytics.js` — a **git-ignored build artifact** — with the connection string injected from
+  `APPINSIGHTS_CONNECTION_STRING` (a **public client key**: local `.env`, or the CI repo **variable** of
+  the same name; never a secret, never committed). GitHub Pages deploys via the
+  `.github/workflows/deploy-pages.yml` **Actions** workflow (Pages `build_type=workflow`) — don't switch
+  Pages back to a branch build or `analytics.js` won't be generated. One-line **kill switch**:
+  `ANALYTICS_ENABLED = false` in `src/analytics.js`. Keep the tracked-event list and the "no cookies / no
+  PII" wording in sync across `src/analytics.js`, the `index.html` footer note, and the README "Watching
+  the promo site" section. Report with `npm run report` (App Insights `ghcpotel-web-ai`, RG
+  `rg-ghcp-otel`).
