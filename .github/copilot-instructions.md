@@ -34,3 +34,12 @@ drift from the README.
 - **Honest scope.** Only VS Code, the CLI, and the SDK emit customer-collectable OTel today. Don't
   reintroduce "all surfaces" overclaiming (Visual Studio, JetBrains, the Copilot app, and the cloud
   coding agent are not covered).
+- **Discovery / SEO.** `docs/` also ships crawler + AI-agent discovery: `sitemap.xml`, `robots.txt`
+  (welcomes major AI agents), `llms.txt`, `site.webmanifest`, favicons/PWA icons, a branded `404.html`,
+  and JSON-LD + Open Graph/Twitter tags in `index.html`. The canonical origin is the custom domain in
+  `docs/CNAME` — currently `https://copilot-opentelemetry.isainative.dev/` (served at the root). Keep
+  **every absolute URL** (canonical, `og:*`, `twitter:*`, JSON-LD `@id`/`url`, sitemap `<loc>`, the
+  robots `Sitemap:` line, and the `llms.txt` landing link) pointing at that origin; if the title,
+  description, or social image change, update `index.html`, `site.webmanifest`, and `llms.txt` together.
+  Regenerate icons with `python scripts/generate-icons.py` (don't hand-edit the PNG/ICO), and preserve
+  `docs/CNAME`.
