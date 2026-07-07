@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>404 — Not found · copilot-otel-grafana</title>
+<meta name="robots" content="noindex, follow" />
+<meta name="theme-color" content="#0a0e1a" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{--bg:#0a0e1a;--ink:#eef3fb;--muted:#94a1b6;--hit:#73bf69;--miss:#ff9830;--otel:#f97316;
+    --disp:"Space Grotesk",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Consolas,monospace}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{min-height:100vh;background:var(--bg);color:var(--ink);font-family:var(--mono);
+    display:flex;align-items:center;justify-content:center;padding:24px;
+    background-image:radial-gradient(900px 480px at 80% -10%,rgba(249,115,22,.10),transparent 60%)}
+  .card{max-width:560px;text-align:center}
+  .ticks{display:flex;gap:5px;justify-content:center;align-items:flex-end;height:48px;margin-bottom:26px}
+  .ticks i{width:6px;border-radius:2px;display:block}
+  h1{font-family:var(--disp);font-size:clamp(48px,11vw,88px);letter-spacing:-.03em;line-height:1}
+  p{color:var(--muted);margin:14px 0 28px;font-size:15px;line-height:1.65}
+  a.home{display:inline-block;padding:11px 18px;border-radius:9px;background:var(--otel);
+    color:#0a0e1a;font-weight:600;font-size:14px;font-family:var(--mono)}
+  a.home:hover{filter:brightness(1.08)}
+  a.home:focus-visible{outline:2px solid var(--hit);outline-offset:3px}
+</style>
+</head>
+<body>
+  <main class="card">
+    <div class="ticks" aria-hidden="true">
+      <i style="height:34px;background:var(--hit)"></i>
+      <i style="height:20px;background:var(--hit)"></i>
+      <i style="height:44px;background:var(--miss)"></i>
+      <i style="height:28px;background:var(--hit)"></i>
+      <i style="height:16px;background:var(--miss)"></i>
+    </div>
+    <h1>404</h1>
+    <p>That trace didn't resolve — the page you're looking for isn't in this span.</p>
+    <a class="home" href="/">Back to the dashboard &rarr;</a>
+  </main>
+</body>
+</html>

@@ -1,0 +1,22 @@
+# copilot-otel-grafana — OpenTelemetry for GitHub Copilot
+
+> Turn GitHub Copilot's OpenTelemetry into one Grafana dashboard — prompt-cache hit rate, tokens, latency, and tool calls — across GitHub Copilot in VS Code (`service.name = copilot-chat`) and the GitHub Copilot CLI (`service.name = github-copilot`). Runs locally for $0 and scales to a fleet via Azure or Grafana Cloud.
+
+This is a hands-on observability experiment. VS Code Copilot Chat and the Copilot CLI both emit OpenTelemetry that follows the GenAI semantic conventions, so a single dashboard with a "surface" selector can compare them side by side. The project ships a local Docker stack (Tempo + Grafana), three larger backends (Azure with a local collector, an Azure Container Apps collector, and Grafana Cloud), surface-aware dashboards (TraceQL for Tempo, KQL for Azure Monitor), and a privacy-first default: telemetry goes to *your* endpoint, not GitHub, and no prompts or code are sent unless you explicitly opt in.
+
+## Pages
+
+- [Project landing page](https://copilot-opentelemetry.isainative.dev/): Overview of the surfaces, the four backends, what you can monitor, data privacy, and the quick start.
+
+## Source and docs
+
+- [GitHub repository](https://github.com/webmaxru/copilot-otel-grafana): Full source — Docker Compose, OTel Collector configs, Azure provisioning scripts, and dashboards.
+- [README](https://github.com/webmaxru/copilot-otel-grafana/blob/main/README.md): Canonical documentation — surfaces, the four backend options, dashboards, privacy, and quick start.
+- [Article, v2](https://github.com/webmaxru/copilot-otel-grafana/blob/main/docs/article-v2.md): Deep dive — exactly what data OpenTelemetry exposes, a data-privacy analysis, and what motivates a developer to set it up.
+- [Article, v1](https://github.com/webmaxru/copilot-otel-grafana/blob/main/docs/article.md): The original narrative walkthrough.
+
+## References
+
+- [GitHub Copilot CLI — OpenTelemetry monitoring](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference#opentelemetry-monitoring): Official docs for enabling OTel in the Copilot CLI.
+- [OpenTelemetry GenAI semantic conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/): The `gen_ai.*` attributes both surfaces emit.
+- [samueltauil/copilot-traces](https://github.com/samueltauil/copilot-traces): The original article and repository this experiment builds on.

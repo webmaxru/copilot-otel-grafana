@@ -4,20 +4,79 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>copilot-otel-grafana · OpenTelemetry for GitHub Copilot</title>
-<meta name="description" content="Turn GitHub Copilot's OpenTelemetry into one Grafana dashboard — prompt-cache hit rate, tokens, latency and tools — across VS Code and the CLI. Runs on your laptop for $0; scales to a fleet." />
-<link rel="canonical" href="https://webmaxru.github.io/copilot-otel-grafana/" />
-<!-- Social preview -->
+<meta name="description" content="Turn GitHub Copilot's OpenTelemetry into one Grafana dashboard — prompt-cache hit rate, tokens, latency and tool calls — across VS Code and the CLI. $0 to start." />
+<meta name="author" content="Maxim Salnikov" />
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+<meta name="googlebot" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+<meta name="theme-color" content="#0a0e1a" media="(prefers-color-scheme: dark)" />
+<meta name="theme-color" content="#0a0e1a" media="(prefers-color-scheme: light)" />
+<link rel="canonical" href="https://copilot-opentelemetry.isainative.dev/" />
+<!-- Open Graph -->
 <meta property="og:type" content="website" />
+<meta property="og:site_name" content="copilot-otel-grafana" />
+<meta property="og:locale" content="en_US" />
 <meta property="og:title" content="You can't tune what you can't see — OpenTelemetry for GitHub Copilot" />
 <meta property="og:description" content="Prompt-cache observability for GitHub Copilot across VS Code and the CLI, on one Grafana dashboard. $0 to start." />
-<meta property="og:image" content="https://webmaxru.github.io/copilot-otel-grafana/images/article-cover.png" />
-<meta property="og:url" content="https://webmaxru.github.io/copilot-otel-grafana/" />
+<meta property="og:url" content="https://copilot-opentelemetry.isainative.dev/" />
+<meta property="og:image" content="https://copilot-opentelemetry.isainative.dev/images/article-cover.png" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:width" content="2400" />
+<meta property="og:image:height" content="1260" />
+<meta property="og:image:alt" content="OpenTelemetry for GitHub Copilot — a Grafana dashboard of prompt-cache hits and misses across VS Code and the CLI." />
+<!-- Twitter / X -->
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:image" content="https://webmaxru.github.io/copilot-otel-grafana/images/article-cover.png" />
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%230a0e1a'/%3E%3Crect x='3' y='7' width='2.4' height='6' rx='1' fill='%2373bf69'/%3E%3Crect x='6.8' y='4' width='2.4' height='9' rx='1' fill='%2373bf69'/%3E%3Crect x='10.6' y='9' width='2.4' height='4' rx='1' fill='%23ff9830'/%3E%3C/svg%3E" />
+<meta name="twitter:site" content="@webmaxru" />
+<meta name="twitter:creator" content="@webmaxru" />
+<meta name="twitter:title" content="You can't tune what you can't see — OpenTelemetry for GitHub Copilot" />
+<meta name="twitter:description" content="Prompt-cache observability for GitHub Copilot across VS Code and the CLI, on one Grafana dashboard. $0 to start." />
+<meta name="twitter:image" content="https://copilot-opentelemetry.isainative.dev/images/article-cover.png" />
+<meta name="twitter:image:alt" content="OpenTelemetry for GitHub Copilot — a Grafana dashboard of prompt-cache hits and misses across VS Code and the CLI." />
+<link rel="icon" href="favicon.ico" sizes="32x32" />
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<link rel="manifest" href="site.webmanifest" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://copilot-opentelemetry.isainative.dev/#website",
+      "url": "https://copilot-opentelemetry.isainative.dev/",
+      "name": "copilot-otel-grafana",
+      "description": "OpenTelemetry for GitHub Copilot — one Grafana dashboard across VS Code and the CLI.",
+      "inLanguage": "en",
+      "publisher": { "@id": "https://copilot-opentelemetry.isainative.dev/#author" }
+    },
+    {
+      "@type": "Person",
+      "@id": "https://copilot-opentelemetry.isainative.dev/#author",
+      "name": "Maxim Salnikov",
+      "url": "https://github.com/webmaxru",
+      "sameAs": [
+        "https://github.com/webmaxru",
+        "https://x.com/webmaxru"
+      ]
+    },
+    {
+      "@type": "SoftwareSourceCode",
+      "@id": "https://copilot-opentelemetry.isainative.dev/#project",
+      "name": "copilot-otel-grafana",
+      "description": "Turn GitHub Copilot's OpenTelemetry into one Grafana dashboard — prompt-cache hit rate, tokens, latency and tool calls — across VS Code and the CLI. Runs locally for $0 and scales to a fleet via Azure or Grafana Cloud.",
+      "url": "https://copilot-opentelemetry.isainative.dev/",
+      "codeRepository": "https://github.com/webmaxru/copilot-otel-grafana",
+      "programmingLanguage": ["YAML", "PowerShell", "HTML"],
+      "license": "https://opensource.org/licenses/MIT",
+      "author": { "@id": "https://copilot-opentelemetry.isainative.dev/#author" },
+      "keywords": ["OpenTelemetry", "GitHub Copilot", "Observability", "Grafana", "Tempo", "prompt cache"],
+      "isPartOf": { "@id": "https://copilot-opentelemetry.isainative.dev/#website" }
+    }
+  ]
+}
+</script>
 <style>
   :root{
     --bg:#0a0e1a; --bg2:#0c1120; --panel:#0f1626; --panel2:#111a2c;
