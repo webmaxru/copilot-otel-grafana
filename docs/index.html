@@ -331,16 +331,16 @@
       <div class="sec-head">
         <span class="eyebrow">The honest map</span>
         <h2>Which Copilot surfaces emit OpenTelemetry?</h2>
-        <p>Not all of them — yet. This project covers the two you can actually collect from today, plus the
-          SDK for apps you build. No overclaiming.</p>
+        <p>Not all of them — yet. This project covers the two you can collect from today — VS&nbsp;Code and the
+          CLI (the desktop Copilot app rides on the CLI) — plus the SDK for apps you build. No overclaiming.</p>
       </div>
       <div class="cov">
         <div class="row yes"><span class="s">✓</span><span class="n">VS Code Copilot Chat</span><span class="m">settings or OTEL_* env</span></div>
         <div class="row yes"><span class="s">✓</span><span class="n">GitHub Copilot CLI</span><span class="m">OTEL_* env vars</span></div>
+        <div class="row yes"><span class="s">✓</span><span class="n">Copilot app (desktop)</span><span class="m">frontend to the CLI → github-copilot</span></div>
         <div class="row yes"><span class="s">✓</span><span class="n">Copilot SDK — for apps you build</span><span class="m">TelemetryConfig</span></div>
         <div class="row no"><span class="s">—</span><span class="n">Visual Studio extension</span><span class="m">not today</span></div>
         <div class="row no"><span class="s">—</span><span class="n">JetBrains plugins</span><span class="m">Rider's OTel plugin ≠ Copilot</span></div>
-        <div class="row maybe"><span class="s">?</span><span class="n">Copilot app (desktop)</span><span class="m">not documented</span></div>
         <div class="row no"><span class="s">—</span><span class="n">Cloud coding agent (opens PRs)</span><span class="m">server-side; client counters only</span></div>
       </div>
     </div>

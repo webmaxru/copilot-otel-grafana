@@ -48,7 +48,7 @@ map (mid‑2026):
 | **Copilot SDK** (Node/Py/Go/.NET/Java/Rust) | ✅ **Yes** — for apps you build | `TelemetryConfig` (drives the CLI process) |
 | **Visual Studio** extension | ❌ Not today | — |
 | **JetBrains** plugins | ❌ Not today | — |
-| **Copilot app** (desktop) | ⚠️ Not documented | (agent‑native; likely shares the CLI core) |
+| **Copilot app** (desktop) | ✅ **Yes** — via the CLI | Frontend to the Copilot CLI: same `OTEL_*` env vars, reports as `github-copilot` (verified) |
 | **Cloud coding agent** (opens PRs) | ❌ Not directly | server‑side; the *client* only records session counters |
 
 Two clarifications that save you a rabbit hole:
@@ -244,8 +244,8 @@ The path scales without changing the mental model:
    push as **managed settings**, pointed at a shared collector or SaaS endpoint. Telemetry stops being
    opt‑in — every managed developer, both surfaces, reporting automatically.
 
-And the honest roadmap: **when the next surface adopts these conventions** — a JetBrains plugin, Visual
-Studio, the Copilot app — it slots straight into the selector: a new `service.name`, a new option, nothing
+And the honest roadmap: **when the next surface adopts these conventions** — a JetBrains plugin or Visual
+Studio — it slots straight into the selector: a new `service.name`, a new option, nothing
 else. Until then, the dashboard shows you exactly what's instrumented, and no more. That honesty is a
 feature: you know precisely what your numbers do and don't cover.
 

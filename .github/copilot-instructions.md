@@ -31,9 +31,9 @@ drift from the README.
   Grafana and uploadable to Grafana Cloud; `dashboards/appinsights/copilot-otel-appinsights.json` (KQL)
   is for Azure Monitor. Both carry a **Copilot surface** selector (`All (VS Code + CLI)` / `VS Code` /
   `Copilot CLI`) filtering on `resource.service.name` (TraceQL) or `cloud_RoleName` (KQL).
-- **Honest scope.** Only VS Code, the CLI, and the SDK emit customer-collectable OTel today. Don't
-  reintroduce "all surfaces" overclaiming (Visual Studio, JetBrains, the Copilot app, and the cloud
-  coding agent are not covered).
+- **Honest scope.** VS Code, the CLI, and the SDK emit customer-collectable OTel today — and so does the
+  desktop **Copilot app**, a frontend to the CLI that reports as `github-copilot`. Don't reintroduce "all
+  surfaces" overclaiming: Visual Studio, JetBrains, and the cloud coding agent are still not covered.
 - **Discovery / SEO.** `docs/` also ships crawler + AI-agent discovery: `sitemap.xml`, `robots.txt`
   (welcomes major AI agents), `llms.txt`, `site.webmanifest`, favicons/PWA icons, a branded `404.html`,
   and JSON-LD + Open Graph/Twitter tags in `index.html`. The canonical origin is the custom domain in

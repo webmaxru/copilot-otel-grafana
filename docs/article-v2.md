@@ -59,11 +59,12 @@ have it locally, for $0, offline.
 | **Copilot SDK** (Node/Py/Go/.NET/Java/Rust) | ✅ Yes — for apps you build | configurable | `TelemetryConfig` (drives the CLI process) |
 | **Visual Studio** extension | ❌ Not today | — | — |
 | **JetBrains** plugins | ❌ Not today | — | Rider's own OTel plugin instruments *your app*, not Copilot |
-| **Copilot app** (desktop) | ⚠️ Not documented | — | agent‑native; likely shares the CLI core |
+| **Copilot app** (desktop) | ✅ Yes — via the CLI | `github-copilot` | Frontend to the Copilot CLI: same `OTEL_*` env vars, reports as `github-copilot` (verified) |
 | **Cloud coding agent** (opens PRs) | ❌ Not directly | — | server‑side; the *client* only emits session counters |
 
 So this experiment covers **VS Code (`copilot-chat`)** and **the CLI (`github-copilot`)** — the two you
-can actually collect from — plus the SDK for anything custom you build.
+can actually collect from (the desktop **Copilot app** is a frontend to the CLI and reports as `github-copilot`
+too) — plus the SDK for anything custom you build.
 
 ---
 
@@ -309,7 +310,7 @@ Add it to the traces pipeline and the git/org identifiers never reach your backe
 3. **Enforce with Intune:** push the settings / `OTEL_*` env vars to managed devices, pointed at a shared
    (redacting) collector. Telemetry stops being opt‑in; both surfaces report automatically.
 
-When another surface adopts the same conventions — a JetBrains plugin, Visual Studio, the Copilot app — it
+When another surface adopts the same conventions — a JetBrains plugin or Visual Studio — it
 slots into the selector: a new `service.name`, a new option. Until then, the dashboard shows exactly
 what's instrumented, and no more. That honesty is a feature.
 

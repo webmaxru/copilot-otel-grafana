@@ -32,11 +32,13 @@ Only some Copilot surfaces expose OTel you can export to your own backend today.
 | **Copilot SDK** (Node/Py/Go/.NET/Java/Rust) | ✅ Yes — for apps you build | configurable | `TelemetryConfig` (drives the CLI process) |
 | **Visual Studio** extension | ❌ Not today | — | — |
 | **JetBrains** plugins | ❌ Not today | — | Rider's own OTel plugin instruments *your app*, not Copilot |
-| **Copilot app** (desktop) | ⚠️ Not documented | — | agent-native; likely shares the CLI core |
+| **Copilot app** (desktop) | ✅ Yes — via the CLI | `github-copilot` | Frontend to the Copilot CLI: the same `OTEL_*` env vars enable it and it reports as `github-copilot` (verified) |
 | **Cloud coding agent** (opens PRs) | ❌ Not directly | — | server-side; the *client* only emits session counters |
 
-So this repo is scoped to the two surfaces you can actually collect from — **VS Code (`copilot-chat`)**
-and **the CLI (`github-copilot`)**. Both follow the **same GenAI conventions** (identical `gen_ai.*`
+So this repo is scoped to the two OTel identities you can actually collect from — **VS Code (`copilot-chat`)**
+and **the CLI (`github-copilot`)**. The desktop **Copilot app** is a frontend to the CLI, so it emits the
+same telemetry and reports as `github-copilot` too — it rides the `Copilot CLI` selector option rather than
+adding a new one. Both follow the **same GenAI conventions** (identical `gen_ai.*`
 attributes), differing only in `resource.service.name` — which is exactly what the dashboards use as a
 **surface selector** (`All (VS Code + CLI)` / `VS Code` / `Copilot CLI`). Keep `OTEL_SERVICE_NAME`
 **unset** so each surface keeps its distinct default name. When another surface adopts these
@@ -168,6 +170,7 @@ reads the **same `OTEL_*` environment variables** — so the cloud block above e
   so the two surfaces stay distinct in the dashboards.
 - Content capture is a different flag: `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` (default `false`).
 - For a **local** backend (A/B), point the CLI at the collector: `setx OTEL_EXPORTER_OTLP_ENDPOINT "http://localhost:4318"`.
+- The **desktop GitHub Copilot app** is a frontend to the CLI, so these same vars enable its telemetry too — it reports as `github-copilot` (verified by testing).
 
 > **Safety.** Use **User** settings / user env vars, not Workspace. Keep `captureContent` **off** — set
 > to `true` and full prompts, responses, and code land in the traces (fine for debugging your own,
