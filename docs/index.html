@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>copilot-otel-grafana · OpenTelemetry for GitHub Copilot</title>
+<meta name="description" content="Turn GitHub Copilot's OpenTelemetry into one Grafana dashboard — prompt-cache hit rate, tokens, latency and tools — across VS Code and the CLI. Runs on your laptop for $0; scales to a fleet." />
+<link rel="canonical" href="https://webmaxru.github.io/copilot-otel-grafana/" />
+<!-- Social preview -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="You can't tune what you can't see — OpenTelemetry for GitHub Copilot" />
+<meta property="og:description" content="Prompt-cache observability for GitHub Copilot across VS Code and the CLI, on one Grafana dashboard. $0 to start." />
+<meta property="og:image" content="https://webmaxru.github.io/copilot-otel-grafana/images/article-cover.png" />
+<meta property="og:url" content="https://webmaxru.github.io/copilot-otel-grafana/" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:image" content="https://webmaxru.github.io/copilot-otel-grafana/images/article-cover.png" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%230a0e1a'/%3E%3Crect x='3' y='7' width='2.4' height='6' rx='1' fill='%2373bf69'/%3E%3Crect x='6.8' y='4' width='2.4' height='9' rx='1' fill='%2373bf69'/%3E%3Crect x='10.6' y='9' width='2.4' height='4' rx='1' fill='%23ff9830'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#0a0e1a; --bg2:#0c1120; --panel:#0f1626; --panel2:#111a2c;
+    --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.05);
+    --ink:#eef3fb; --muted:#94a1b6; --faint:#5f6b7f;
+    --hit:#73bf69; --miss:#ff9830; --otel:#f97316; --vscode:#4c8dff; --cli:#a06bff;
+    --disp:"Space Grotesk",system-ui,sans-serif;
+    --body:"IBM Plex Sans",system-ui,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+    --maxw:1080px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--bg); color:var(--ink); font-family:var(--body);
+    font-size:17px; line-height:1.6; -webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(1200px 560px at 92% -10%, rgba(249,115,22,.10), transparent 60%),
+      radial-gradient(1000px 620px at -8% 8%, rgba(76,141,255,.08), transparent 55%);
+    background-attachment:fixed;
+  }
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+  .mono{font-family:var(--mono)}
+
+  /* eyebrow */
+  .eyebrow{font-family:var(--mono);font-size:13px;letter-spacing:.26em;text-transform:uppercase;
+    color:var(--otel);font-weight:600;display:inline-flex;align-items:center;gap:10px}
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--hit);box-shadow:0 0 10px var(--hit)}
+
+  /* nav */
+  nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(10px);
+    background:rgba(10,14,26,.72);border-bottom:1px solid var(--line2)}
+  .nav-in{max-width:var(--maxw);margin:0 auto;padding:14px 24px;display:flex;align-items:center;gap:22px}
+  .brand{font-family:var(--mono);font-weight:600;font-size:15px;color:var(--ink);display:flex;align-items:center;gap:9px}
+  .brand .sq{width:11px;height:11px;border-radius:3px;background:var(--hit)}
+  .nav-links{margin-left:auto;display:flex;gap:26px;font-size:14px;color:var(--muted);font-family:var(--mono)}
+  .nav-links a:hover{color:var(--ink)}
+  .nav-cta{padding:8px 15px;border:1px solid var(--line);border-radius:8px;color:var(--ink);font-size:14px;font-family:var(--mono)}
+  .nav-cta:hover{border-color:var(--otel);color:var(--otel)}
+  @media(max-width:720px){.nav-links{display:none}}
+
+  /* hero */
+  .hero{padding:88px 0 40px}
+  h1{font-family:var(--disp);font-weight:700;font-size:clamp(40px,7vw,74px);line-height:1.02;
+    letter-spacing:-1.6px;margin:24px 0 0}
+  h1 .see{color:var(--otel);position:relative;white-space:nowrap}
+  h1 .see:after{content:"";position:absolute;left:0;right:0;bottom:4px;height:12px;border-radius:4px;
+    background:linear-gradient(90deg,var(--otel),rgba(249,115,22,0));opacity:.32}
+  .lede{margin-top:26px;font-size:21px;line-height:1.5;color:var(--muted);max-width:660px}
+  .lede b{color:var(--ink);font-weight:600}
+  .cta-row{margin-top:34px;display:flex;gap:14px;flex-wrap:wrap}
+  .btn{font-family:var(--mono);font-size:15px;font-weight:500;padding:13px 22px;border-radius:10px;
+    display:inline-flex;align-items:center;gap:10px;border:1px solid transparent;transition:.15s}
+  .btn.primary{background:var(--otel);color:#160a02;font-weight:600}
+  .btn.primary:hover{background:#ff8a3d;transform:translateY(-1px)}
+  .btn.ghost{border-color:var(--line);color:var(--ink)}
+  .btn.ghost:hover{border-color:var(--ink)}
+
+  /* SIGNATURE: hit/miss tickline */
+  .tape{margin-top:52px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,var(--panel),var(--bg2));
+    padding:22px 22px 18px;box-shadow:0 30px 80px rgba(0,0,0,.4)}
+  .tape .cap{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--mono);
+    font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+  .tape .cap .rate{color:var(--hit);font-size:15px;letter-spacing:0}
+  .tape .cap .rate b{font-family:var(--disp);font-size:26px;font-weight:700;vertical-align:-3px;margin-right:4px}
+  .ticks{display:flex;align-items:flex-end;gap:4px;height:120px;margin:16px 0 10px}
+  .ticks .t{flex:1;border-radius:3px 3px 1px 1px;transform-origin:bottom;transform:scaleY(.06);
+    animation:grow .5s cubic-bezier(.2,.8,.2,1) forwards}
+  @keyframes grow{to{transform:scaleY(1)}}
+  .legend{display:flex;gap:22px;font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:8px;vertical-align:middle}
+
+  .chips{margin-top:22px;display:flex;gap:12px;flex-wrap:wrap}
+  .chip{font-family:var(--mono);font-size:14px;padding:9px 14px;border-radius:999px;border:1px solid var(--line);
+    background:rgba(255,255,255,.02);display:inline-flex;gap:10px;align-items:center;color:var(--ink)}
+  .chip .d{width:8px;height:8px;border-radius:50%}
+  .chip .k{color:var(--faint)}
+
+  /* section scaffolding */
+  section{padding:66px 0;border-top:1px solid var(--line2)}
+  .sec-head{max-width:720px}
+  .sec-head h2{font-family:var(--disp);font-weight:600;font-size:clamp(28px,4.4vw,40px);letter-spacing:-.7px;line-height:1.08;margin-top:14px}
+  .sec-head p{margin-top:16px;color:var(--muted);font-size:19px}
+  .sec-head p b{color:var(--ink);font-weight:600}
+
+  /* divider tickline (thin) */
+  .rule{height:12px;background-repeat:repeat-x;background-size:14px 12px;opacity:.5;margin:0;border:0;
+    background-image:
+      linear-gradient(90deg,var(--hit) 0 3px, transparent 3px 14px),
+      linear-gradient(90deg,transparent 0 7px, var(--miss) 7px 9px, transparent 9px 14px);}
+
+  /* insight: two surfaces */
+  .insight{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:34px}
+  .scard{border:1px solid var(--line);border-radius:14px;padding:22px;background:var(--panel)}
+  .scard .h{display:flex;align-items:center;gap:11px;font-family:var(--disp);font-weight:600;font-size:19px}
+  .scard .h .d{width:10px;height:10px;border-radius:50%}
+  .scard code{font-family:var(--mono);font-size:14px;color:var(--muted);display:block;margin-top:10px}
+  .scard p{margin-top:12px;color:var(--muted);font-size:15px}
+  .selnote{margin-top:20px;font-family:var(--mono);font-size:14.5px;color:var(--muted);
+    border-left:2px solid var(--otel);padding-left:16px;line-height:1.7}
+  .selnote b{color:var(--ink)}
+  @media(max-width:640px){.insight{grid-template-columns:1fr}}
+
+  /* coverage list */
+  .cov{margin-top:30px;display:grid;gap:1px;background:var(--line2);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .cov .row{display:grid;grid-template-columns:26px 1.3fr 1fr;gap:14px;align-items:center;padding:15px 20px;background:var(--panel);font-size:15.5px}
+  .cov .row .s{font-family:var(--mono);font-size:16px;text-align:center}
+  .cov .row .n{color:var(--ink)}
+  .cov .row .m{color:var(--faint);font-family:var(--mono);font-size:13.5px}
+  .cov .row.no .n{color:var(--muted)}
+  .cov .yes .s{color:var(--hit)} .cov .no .s{color:var(--faint)} .cov .maybe .s{color:var(--miss)}
+  @media(max-width:640px){.cov .row{grid-template-columns:22px 1fr}.cov .row .m{display:none}}
+
+  /* monitor cards */
+  .grid3{margin-top:34px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .mcard{border:1px solid var(--line);border-radius:14px;padding:22px;background:var(--panel);transition:.15s}
+  .mcard:hover{border-color:rgba(255,255,255,.16);transform:translateY(-2px)}
+  .mcard .lbl{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--otel)}
+  .mcard h3{font-family:var(--disp);font-weight:600;font-size:19px;margin-top:9px}
+  .mcard p{margin-top:8px;color:var(--muted);font-size:14.5px}
+  .mcard .kv{margin-top:12px;font-family:var(--mono);font-size:12.5px;color:var(--faint);line-height:1.7}
+  @media(max-width:820px){.grid3{grid-template-columns:1fr 1fr}}
+  @media(max-width:560px){.grid3{grid-template-columns:1fr}}
+
+  /* screenshot */
+  .shotframe{margin-top:32px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--panel);box-shadow:0 30px 80px rgba(0,0,0,.45)}
+  .shotbar{display:flex;align-items:center;gap:7px;padding:11px 15px;border-bottom:1px solid var(--line2);background:var(--bg2)}
+  .shotbar .b{width:11px;height:11px;border-radius:50%;background:#2a3550}
+  .shotbar .u{margin-left:14px;font-family:var(--mono);font-size:12.5px;color:var(--faint)}
+  .shotframe img{display:block;width:100%;height:auto}
+  .shotcap{margin-top:14px;color:var(--faint);font-size:14px;font-family:var(--mono)}
+
+  /* backends */
+  .grid4{margin-top:34px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .bcard{border:1px solid var(--line);border-radius:14px;padding:20px;background:var(--panel)}
+  .bcard .tag{font-family:var(--disp);font-weight:700;font-size:15px;color:var(--otel);letter-spacing:.02em}
+  .bcard h3{font-family:var(--disp);font-weight:600;font-size:17px;margin-top:6px}
+  .bcard p{margin-top:9px;color:var(--muted);font-size:14px}
+  .bcard .cost{margin-top:12px;font-family:var(--mono);font-size:12.5px;color:var(--hit)}
+  @media(max-width:820px){.grid4{grid-template-columns:1fr 1fr}}
+  @media(max-width:460px){.grid4{grid-template-columns:1fr}}
+
+  /* privacy */
+  .plist{margin-top:30px;display:grid;gap:14px}
+  .pitem{display:grid;grid-template-columns:26px 1fr;gap:14px;align-items:start}
+  .pitem .ic{color:var(--hit);font-family:var(--mono);font-weight:600;font-size:18px;line-height:1.5}
+  .pitem p{color:var(--muted);font-size:15.5px}
+  .pitem p b{color:var(--ink);font-weight:600}
+  .pitem code{font-family:var(--mono);font-size:13.5px;color:var(--ink);background:rgba(255,255,255,.05);padding:1px 6px;border-radius:5px}
+
+  /* quick start */
+  .steps{margin-top:30px;display:grid;gap:18px}
+  .step{display:grid;grid-template-columns:44px 1fr;gap:18px;align-items:start}
+  .step .num{font-family:var(--disp);font-weight:700;font-size:20px;color:var(--bg);background:var(--hit);
+    width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center}
+  .step h3{font-family:var(--disp);font-weight:600;font-size:18px}
+  .step p{color:var(--muted);font-size:15px;margin-top:4px}
+  pre{margin-top:12px;background:var(--bg2);border:1px solid var(--line);border-radius:11px;padding:16px 18px;overflow:auto}
+  pre code{font-family:var(--mono);font-size:13.5px;color:#cdd7ea;line-height:1.7;white-space:pre}
+  .tok-c{color:var(--faint)} .tok-k{color:var(--otel)}
+
+  /* footer */
+  footer{border-top:1px solid var(--line2);padding:48px 0 60px;color:var(--faint);font-size:14.5px}
+  .foot-in{display:flex;flex-wrap:wrap;gap:24px;justify-content:space-between;align-items:flex-start}
+  footer a{color:var(--muted)} footer a:hover{color:var(--ink)}
+  .foot-links{display:flex;gap:22px;font-family:var(--mono);flex-wrap:wrap}
+  .foot-note{max-width:520px;line-height:1.7}
+
+  :focus-visible{outline:2px solid var(--otel);outline-offset:3px;border-radius:4px}
+  @media(prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    .ticks .t{animation:none;transform:scaleY(1)}
+  }
+</style>
+</head>
+<body>
+<nav>
+  <div class="nav-in">
+    <a class="brand" href="#top"><span class="sq"></span>copilot-otel-grafana</a>
+    <div class="nav-links">
+      <a href="#surfaces">Surfaces</a>
+      <a href="#monitor">What you see</a>
+      <a href="#backends">Backends</a>
+      <a href="#privacy">Privacy</a>
+    </div>
+    <a class="nav-cta" href="https://github.com/webmaxru/copilot-otel-grafana">GitHub ↗</a>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <span class="eyebrow"><span class="dot"></span>OpenTelemetry · GitHub Copilot</span>
+    <h1>You can't tune<br>what you can't <span class="see">see</span>.</h1>
+    <p class="lede">Turn GitHub Copilot's OpenTelemetry into <b>one Grafana dashboard</b> —
+      prompt‑cache hit rate, tokens, latency and tools — across <b>VS Code</b> and <b>the CLI</b>.
+      Runs on your laptop for <b>$0</b>; scales to a fleet.</p>
+    <div class="cta-row">
+      <a class="btn primary" href="https://github.com/webmaxru/copilot-otel-grafana">View on GitHub →</a>
+      <a class="btn ghost" href="https://github.com/webmaxru/copilot-otel-grafana/blob/main/docs/article-v2.md">Read the write‑up</a>
+    </div>
+
+    <div class="tape">
+      <div class="cap"><span>prompt cache · cache_read vs cache_creation</span>
+        <span class="rate"><b>63%</b>hit rate</span></div>
+      <div class="ticks" id="ticks" aria-hidden="true"></div>
+      <div class="legend">
+        <span><i style="background:var(--hit)"></i>cache_read (hit)</span>
+        <span><i style="background:var(--miss)"></i>cache_creation (miss)</span>
+      </div>
+    </div>
+
+    <div class="chips">
+      <span class="chip"><span class="d" style="background:var(--vscode)"></span>VS Code<span class="k">service.name=copilot-chat</span></span>
+      <span class="chip"><span class="d" style="background:var(--cli)"></span>Copilot CLI<span class="k">service.name=github-copilot</span></span>
+    </div>
+  </div>
+</header>
+
+<hr class="rule" />
+
+<main>
+  <section id="surfaces">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="eyebrow">The idea</span>
+        <h2>Two surfaces, one vocabulary — so one dashboard.</h2>
+        <p>VS Code Copilot Chat and the Copilot CLI both emit the OpenTelemetry <b>GenAI conventions</b>.
+          The attributes are identical; they differ in exactly one thing — <b>service.name</b>. Turn that
+          into a dropdown and two data streams become one board.</p>
+      </div>
+      <div class="insight">
+        <div class="scard">
+          <div class="h"><span class="d" style="background:var(--vscode)"></span>VS Code Copilot Chat</div>
+          <code>resource.service.name = copilot-chat</code>
+          <p>Enable with four <code>github.copilot.chat.otel.*</code> user settings, or the same env vars.</p>
+        </div>
+        <div class="scard">
+          <div class="h"><span class="d" style="background:var(--cli)"></span>GitHub Copilot CLI</div>
+          <code>resource.service.name = github-copilot</code>
+          <p>Enable with <code>OTEL_*</code> env vars. Same telemetry engine, shared with the Copilot SDK.</p>
+        </div>
+      </div>
+      <div class="selnote"><b>Copilot surface</b> selector →
+        <span class="mono">All (VS Code + CLI)</span> · <span class="mono">VS Code</span> · <span class="mono">Copilot CLI</span>.
+        Keep <span class="mono">OTEL_SERVICE_NAME</span> unset so each surface keeps its own name.</div>
+    </div>
+  </section>
+
+  <section id="coverage">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="eyebrow">The honest map</span>
+        <h2>Which Copilot surfaces emit OpenTelemetry?</h2>
+        <p>Not all of them — yet. This project covers the two you can actually collect from today, plus the
+          SDK for apps you build. No overclaiming.</p>
+      </div>
+      <div class="cov">
+        <div class="row yes"><span class="s">✓</span><span class="n">VS Code Copilot Chat</span><span class="m">settings or OTEL_* env</span></div>
+        <div class="row yes"><span class="s">✓</span><span class="n">GitHub Copilot CLI</span><span class="m">OTEL_* env vars</span></div>
+        <div class="row yes"><span class="s">✓</span><span class="n">Copilot SDK — for apps you build</span><span class="m">TelemetryConfig</span></div>
+        <div class="row no"><span class="s">—</span><span class="n">Visual Studio extension</span><span class="m">not today</span></div>
+        <div class="row no"><span class="s">—</span><span class="n">JetBrains plugins</span><span class="m">Rider's OTel plugin ≠ Copilot</span></div>
+        <div class="row maybe"><span class="s">?</span><span class="n">Copilot app (desktop)</span><span class="m">not documented</span></div>
+        <div class="row no"><span class="s">—</span><span class="n">Cloud coding agent (opens PRs)</span><span class="m">server-side; client counters only</span></div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="rule" />
+
+  <section id="monitor">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="eyebrow">What you can monitor</span>
+        <h2>Traces, metrics, and events — the questions they answer.</h2>
+        <p>Every interaction is a span tree: <span class="mono">invoke_agent → chat → execute_tool</span>.
+          All of it follows the GenAI conventions, so the same queries work on both surfaces.</p>
+      </div>
+      <div class="grid3">
+        <div class="mcard"><div class="lbl">cache</div><h3>Prompt‑cache efficiency</h3><p>Hit vs miss over time, per model, per surface.</p><div class="kv">gen_ai.usage.cache_read<br>gen_ai.usage.cache_creation</div></div>
+        <div class="mcard"><div class="lbl">cost</div><h3>Tokens &amp; cost</h3><p>Input/output/cached tokens, cost and AI units per turn.</p><div class="kv">gen_ai.usage.*_tokens<br>github.copilot.cost · aiu</div></div>
+        <div class="mcard"><div class="lbl">latency</div><h3>Speed</h3><p>Duration and time‑to‑first‑token, sliced by model.</p><div class="kv">gen_ai.client.operation.duration<br>time_to_first_token</div></div>
+        <div class="mcard"><div class="lbl">tools</div><h3>Tool usage &amp; reliability</h3><p>Which tools run, how often, how slow, how often they fail.</p><div class="kv">execute_tool · gen_ai.tool.name</div></div>
+        <div class="mcard"><div class="lbl">outcomes</div><h3>Adoption &amp; impact</h3><p>Edits accepted, lines shipped, edit survival, thumbs, PRs.</p><div class="kv">edit.acceptance · lines_of_code<br>edit.survival · pull_request</div></div>
+        <div class="mcard"><div class="lbl">reliability</div><h3>Errors &amp; sessions</h3><p>Error types, stuck/aborted sessions, context compaction.</p><div class="kv">error.type · session.abort</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="monitor-see">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="eyebrow">See it</span>
+        <h2>One board. Flip the selector.</h2>
+        <p>Cache hit/miss, calls by surface, models, tools, and a raw trace table — filtered to
+          <b>VS Code</b>, <b>the CLI</b>, or both.</p>
+      </div>
+      <div class="shotframe">
+        <div class="shotbar"><span class="b"></span><span class="b"></span><span class="b"></span>
+          <span class="u">localhost:3001 · GitHub Copilot OTel — VS Code + CLI</span></div>
+        <img src="images/dashboard-all-surfaces.png" alt="Grafana dashboard showing both Copilot surfaces: total LLM calls, cache read vs creation tokens, calls by surface (copilot-chat and github-copilot), calls by model, top tools, and a trace table." loading="lazy" />
+      </div>
+      <p class="shotcap">The <span class="mono">All (VS Code + CLI)</span> view, running on local Grafana + Tempo.</p>
+    </div>
+  </section>
+
+  <hr class="rule" />
+
+  <section id="backends">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="eyebrow">Where the telemetry lands</span>
+        <h2>From a laptop to a fleet — four backends.</h2>
+        <p>Same surfaces, same dashboard. Start local and offline; grow into your Azure tenant or Grafana
+          Cloud. None of them needs a paid Grafana instance.</p>
+      </div>
+      <div class="grid4">
+        <div class="bcard"><div class="tag">A</div><h3>Local</h3><p>Docker: Grafana Tempo + Grafana. Offline, private.</p><div class="cost">$0</div></div>
+        <div class="bcard"><div class="tag">B</div><h3>Azure · local collector</h3><p>Collector fans out to Tempo <em>and</em> Application Insights.</p><div class="cost">~$0</div></div>
+        <div class="bcard"><div class="tag">C</div><h3>Azure Container Apps</h3><p>Cloud collector, scale‑to‑zero. Nothing runs locally.</p><div class="cost">~$0 idle</div></div>
+        <div class="bcard"><div class="tag">D</div><h3>Grafana Cloud</h3><p>Point straight at managed Tempo. Nothing to run.</p><div class="cost">free tier</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="privacy">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="eyebrow">Your prompts stay yours</span>
+        <h2>Private by default.</h2>
+        <p>The question that decides whether you can roll this out — answered plainly.</p>
+      </div>
+      <div class="plist">
+        <div class="pitem"><span class="ic">→</span><p><b>Telemetry goes to <em>your</em> endpoint, not GitHub.</b> Enabling OTLP export routes data to the collector or backend you configure. It doesn't send anything extra to GitHub or Microsoft.</p></div>
+        <div class="pitem"><span class="ic">→</span><p><b>No prompts, code, or responses by default.</b> Content capture is off — the GenAI conventions' deliberate opt‑in. You get metadata: model, <code>token counts</code>, durations, tool names, cache hits/misses.</p></div>
+        <div class="pitem"><span class="ic">→</span><p><b>Know the two identifying bits.</b> VS Code attaches repo URL / branch / commit / org; the CLI attaches a <em>pseudonymous</em> user id. MCP server names are SHA‑256 hashed.</p></div>
+        <div class="pitem"><span class="ic">→</span><p><b>The collector is your redaction control point.</b> On the collector backends you can <code>delete</code> or <code>hash</code> attributes (e.g. drop <code>github.copilot.git.*</code>) before anything leaves.</p></div>
+        <div class="pitem"><span class="ic">→</span><p><b>You choose where data lives.</b> On your laptop, in your Azure region (pick an EEA region for residency), or Grafana Cloud's SaaS. Content capture, if you ever turn it on, only against a backend you own.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="rule" />
+
+  <section id="start">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="eyebrow">Start in five minutes</span>
+        <h2>Clone, compose, chat.</h2>
+        <p>The local path (Option A) needs no cloud account and costs nothing.</p>
+      </div>
+      <div class="steps">
+        <div class="step"><div class="num">1</div><div>
+          <h3>Bring up the stack</h3>
+          <p>Grafana Tempo receives OTLP; Grafana serves the dashboard on port 3001.</p>
+          <pre><code><span class="tok-c"># clone, then</span>
+docker compose up -d</code></pre>
+        </div></div>
+        <div class="step"><div class="num">2</div><div>
+          <h3>Point Copilot at it</h3>
+          <p>Four keys in your VS Code <span class="mono">User</span> settings — and the CLI reads the same via env vars.</p>
+          <pre><code>{
+  <span class="tok-k">"github.copilot.chat.otel.enabled"</span>: true,
+  <span class="tok-k">"github.copilot.chat.otel.exporterType"</span>: "otlp-http",
+  <span class="tok-k">"github.copilot.chat.otel.otlpEndpoint"</span>: "http://localhost:4318",
+  <span class="tok-k">"github.copilot.chat.otel.captureContent"</span>: false
+}</code></pre>
+        </div></div>
+        <div class="step"><div class="num">3</div><div>
+          <h3>Use Copilot, then watch</h3>
+          <p>Ask Copilot Chat a few questions or run <span class="mono">copilot</span>, then open the board and flip the surface selector.</p>
+          <pre><code><span class="tok-c"># open</span>
+http://localhost:3001  <span class="tok-c"># → GitHub Copilot OTel — VS Code + CLI</span></code></pre>
+        </div></div>
+      </div>
+      <div class="cta-row">
+        <a class="btn primary" href="https://github.com/webmaxru/copilot-otel-grafana">Get it on GitHub →</a>
+        <a class="btn ghost" href="https://github.com/webmaxru/copilot-otel-grafana/blob/main/docs/article-v2.md">Read the deep‑dive</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap foot-in">
+    <div>
+      <a class="brand" href="#top" style="font-size:15px"><span class="sq"></span>copilot-otel-grafana</a>
+      <p class="foot-note" style="margin-top:14px">Prompt‑cache observability for GitHub Copilot with OpenTelemetry — VS Code + the CLI, on one Grafana dashboard.
+        Built on <a href="https://github.com/samueltauil/copilot-traces">samueltauil/copilot-traces</a>. MIT licensed.</p>
+    </div>
+    <div class="foot-links">
+      <a href="https://github.com/webmaxru/copilot-otel-grafana">Repository</a>
+      <a href="https://github.com/webmaxru/copilot-otel-grafana/blob/main/docs/article-v2.md">Article</a>
+      <a href="https://code.visualstudio.com/docs/agents/guides/monitoring-agents">VS Code OTel</a>
+      <a href="https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference#opentelemetry-monitoring">CLI OTel</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Signature tickline: a deterministic hit/miss telemetry tape (~63% hits), revealed on load.
+  (function(){
+    var el=document.getElementById('ticks'); if(!el) return;
+    var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+    var HIT='var(--hit)', MISS='var(--miss)';
+    // fixed pseudo-random pattern so the tape is stable across loads
+    var seed=1337; function rnd(){ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; }
+    var n=56, frag=document.createDocumentFragment();
+    for(var i=0;i<n;i++){
+      var hit=rnd()<0.63; var h=18+Math.round(rnd()*80);
+      var b=document.createElement('span'); b.className='t';
+      b.style.height=h+'%'; b.style.background=hit?HIT:MISS;
+      b.style.animationDelay=(reduce?0:(i*11))+'ms';
+      frag.appendChild(b);
+    }
+    el.appendChild(frag);
+  })();
+</script>
+</body>
+</html>
