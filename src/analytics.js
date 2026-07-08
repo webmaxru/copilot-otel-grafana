@@ -1,4 +1,4 @@
-// Cookieless Real User Monitoring for the copilot-otel-grafana promo site.
+// Cookieless Real User Monitoring for the copilot-opentelemetry promo site.
 //
 // Uses the @webmaxru/cookieless-insights *beacon* (navigator.sendBeacon, with a
 // fetch keepalive fallback) — no cookies, no local/session storage, no persistent
@@ -29,7 +29,7 @@ const CONNECTION_STRING =
 if (ANALYTICS_ENABLED && CONNECTION_STRING) {
   init({
     connectionString: CONNECTION_STRING,
-    cloudRole: 'copilot-otel-grafana-site', // -> ai.cloud.role, distinguishes this site
+    cloudRole: 'copilot-opentelemetry-site', // -> ai.cloud.role, distinguishes this site
     enabled: ANALYTICS_ENABLED, // one-line kill switch, also honored by the beacon
     // The beacon (sendBeacon) is the default transport — nothing else to configure.
   });

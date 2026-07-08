@@ -1,5 +1,5 @@
 {
-  "name": "copilot-otel-grafana — OpenTelemetry for GitHub Copilot",
+  "name": "copilot-opentelemetry — OpenTelemetry for GitHub Copilot",
   "short_name": "copilot-otel",
   "description": "Turn GitHub Copilot's OpenTelemetry into one Grafana dashboard — prompt-cache hit rate, tokens, latency and tool calls — across VS Code and the CLI.",
   "id": "/",

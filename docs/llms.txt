@@ -1,4 +1,4 @@
-# copilot-otel-grafana — OpenTelemetry for GitHub Copilot
+# copilot-opentelemetry — OpenTelemetry for GitHub Copilot
 
 > Turn GitHub Copilot's OpenTelemetry into one Grafana dashboard — prompt-cache hit rate, tokens, latency, and tool calls — across GitHub Copilot in VS Code (`service.name = copilot-chat`) and the GitHub Copilot CLI (`service.name = github-copilot`). Runs locally for $0 and scales to a fleet via Azure or Grafana Cloud.
 
@@ -10,10 +10,8 @@ This is a hands-on observability experiment. VS Code Copilot Chat and the Copilo
 
 ## Source and docs
 
-- [GitHub repository](https://github.com/webmaxru/copilot-otel-grafana): Full source — Docker Compose, OTel Collector configs, Azure provisioning scripts, and dashboards.
-- [README](https://github.com/webmaxru/copilot-otel-grafana/blob/main/README.md): Canonical documentation — surfaces, the four backend options, dashboards, privacy, and quick start.
-- [Article, v2](https://github.com/webmaxru/copilot-otel-grafana/blob/main/docs/article-v2.md): Deep dive — exactly what data OpenTelemetry exposes, a data-privacy analysis, and what motivates a developer to set it up.
-- [Article, v1](https://github.com/webmaxru/copilot-otel-grafana/blob/main/docs/article.md): The original narrative walkthrough.
+- [GitHub repository](https://github.com/webmaxru/copilot-opentelemetry): Full source — Docker Compose, OTel Collector configs, Azure provisioning scripts, and dashboards.
+- [README](https://github.com/webmaxru/copilot-opentelemetry/blob/main/README.md): Canonical documentation — surfaces, the four backend options, dashboards, privacy, and quick start.
 
 ## References
 

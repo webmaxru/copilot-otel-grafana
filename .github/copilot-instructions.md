@@ -1,4 +1,4 @@
-# Copilot instructions — copilot-otel-grafana
+# Copilot instructions — copilot-opentelemetry
 
 OpenTelemetry-for-GitHub-Copilot observability experiment: turn Copilot's OTel signals into Grafana
 dashboards across the surfaces that emit them — **VS Code** (`service.name = copilot-chat`) and the

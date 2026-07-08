@@ -1,9 +1,9 @@
 {
-  "name": "copilot-otel-grafana-site",
+  "name": "copilot-opentelemetry-site",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Build + cookieless analytics tooling for the copilot-otel-grafana promo site (Azure Application Insights RUM, beacon transport).",
+  "description": "Build + cookieless analytics tooling for the copilot-opentelemetry promo site (Azure Application Insights RUM, beacon transport).",
   "scripts": {
     "build": "node build.mjs",
     "report": "cookieless-insights report --app-insights ghcpotel-web-ai --resource-group rg-ghcp-otel --days 30 --open",

@@ -1,4 +1,4 @@
-# robots.txt — copilot-otel-grafana
+# robots.txt — copilot-opentelemetry
 # Everything here is public and meant to be indexed and read by agents.
 
 User-agent: *
