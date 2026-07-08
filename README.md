@@ -48,14 +48,14 @@ conventions, it slots in: a new `service.name`, a new option in the selector.
 
 | Option | Runs locally | Backend | View dashboards in | Cost |
 |--------|--------------|---------|--------------------|------|
-| **A - Local** | Docker: Tempo + Grafana | Grafana Tempo | Local Grafana `http://localhost:3001` (TraceQL) | $0 |
-| **B - Azure, local collector** | Docker: Collector + Tempo + Grafana | Application Insights (+ local Tempo) | Local Grafana **and** Azure Monitor → Dashboards with Grafana | ~$0 |
-| **C - Azure Container Apps** | Nothing | Application Insights | Azure Monitor → Dashboards with Grafana | ~$0 (scale-to-zero) |
-| **D - Grafana Cloud** | Nothing | Grafana Cloud (managed Tempo) | Grafana Cloud | $0 (free tier) |
+| **A - Local** | Docker: Tempo + Grafana | Grafana Tempo | Local Grafana `http://localhost:3001` (TraceQL) | Free (local) |
+| **B - Azure, local collector** | Docker: Collector + Tempo + Grafana | Application Insights (+ local Tempo) | Local Grafana **and** Azure Monitor → Dashboards with Grafana | Azure usage-based |
+| **C - Azure Container Apps** | Nothing | Application Insights | Azure Monitor → Dashboards with Grafana | Azure usage-based, scale-to-zero |
+| **D - Grafana Cloud** | Nothing | Grafana Cloud (managed Tempo) | Grafana Cloud | Free tier to start |
 
-> **None of these need a paid Grafana instance.** B and C view dashboards for free *inside the Azure
+> **None of these need a paid Grafana instance.** B and C view dashboards *inside the Azure
 > portal* via [Azure Monitor dashboards with Grafana](https://learn.microsoft.com/en-us/azure/azure-monitor/visualize/visualize-use-grafana-dashboards)
-> (same Grafana engine, $0 — versus ~$68/mo for Azure Managed Grafana). D uses Grafana Cloud's free tier.
+> — the same Grafana engine at no extra licence cost, versus ~$68/mo for Azure Managed Grafana. D uses Grafana Cloud's free tier.
 
 Every backend carries **both surfaces** — the surface selector works everywhere. See
 [Choosing a backend](#choosing-a-backend-detailed-trade-offs) for a full comparison.
@@ -76,7 +76,7 @@ Every backend carries **both surfaces** — the surface selector works everywher
 | **Collector in path** (redaction / fan-out / buffering) | No | **Yes** (local) | **Yes** (cloud) | No (direct) |
 | **Auth on the wire** | none (localhost) | none (localhost) | Bearer token (public endpoint) | Basic (instance ID + token) |
 | **Where data lives** | your laptop only | laptop + your Azure region | your Azure region | Grafana Labs SaaS region |
-| **Cost** | $0 | ~$0 (App Insights 5 GB/mo free) | ~$0 (ACA free grant + scale-to-zero) | $0 free tier |
+| **Cost** | Free (local) | Azure usage-based (5 GB/mo App Insights free grant) | Azure usage-based (ACA free grant + scale-to-zero) | Free tier, then usage-based |
 | **Free-tier caps** | n/a | App Insights: 5 GB/mo, 90-day | ACA: 180k vCPU-s + 2M req/mo; App Insights 5 GB/mo | 50 GB traces/mo, 14-day, 3 users |
 | **Cold start** | no | no | **yes** (first request after idle) | no |
 | **Works offline / no cloud account** | **Yes** | No | No | No |
@@ -104,7 +104,7 @@ Every backend carries **both surfaces** — the surface selector works everywher
 - **B - Azure, local collector.** You want *both* the local TraceQL dashboard and the Azure one, with a
   collector for redaction/fan-out, and data in your Azure tenant — great for evaluating before a rollout.
 - **C - Azure Container Apps collector.** Azure org that wants a **fleet-ready, nothing-local** setup,
-  data staying in Azure, a collector in the path, and ~$0 idle cost (scale-to-zero).
+  data staying in Azure, a collector in the path, and scale-to-zero when idle.
 - **D - Grafana Cloud.** A Grafana-Cloud shop or small team that wants **nothing to run** and the
   fastest path to a hosted dashboard.
 
@@ -233,10 +233,10 @@ docker compose down -v
 
 ---
 
-## Option B — Azure, local collector (free visualization)
+## Option B — Azure, local collector (in-portal dashboards)
 
 An **OpenTelemetry Collector** runs locally and **fans out** to *both* Grafana Tempo (local TraceQL
-dashboard) **and** Azure Application Insights. View the free in-portal dashboard, the local Tempo
+dashboard) **and** Azure Application Insights. View the in-portal dashboard, the local Tempo
 dashboard, or both.
 
 ```mermaid
@@ -244,7 +244,7 @@ flowchart LR
     VS["VS Code / Copilot CLI"] -->|OTLP/HTTP :4318| Col["OTel Collector<br/>(contrib)"]
     Col -->|OTLP :4317| Tempo["Grafana Tempo<br/>(local :3001 dashboard)"]
     Col -->|azuremonitor exporter| AI["Azure Application Insights"]
-    Portal["Azure Monitor > Dashboards with Grafana (free)"] -->|KQL| AI
+    Portal["Azure Monitor > Dashboards with Grafana"] -->|KQL| AI
 ```
 
 ### 1. Provision the Azure backend (Log Analytics + Application Insights)
@@ -299,13 +299,13 @@ The `azuremonitor` exporter maps Copilot spans into the App Insights **`dependen
 
 Run the OTel Collector in the cloud on **Azure Container Apps** (Consumption plan, `minReplicas: 0`),
 exposing a public, token-protected OTLP endpoint that forwards to Application Insights. Nothing runs
-on your machine; ~$0 while idle (scales to zero), wakes on the first request.
+on your machine; it scales to zero while idle, waking on the first request.
 
 ```mermaid
 flowchart LR
     VS["VS Code / Copilot CLI"] -->|OTLP/HTTP + Bearer token| ACA["OTel Collector on<br/>Azure Container Apps (scale-to-zero)"]
     ACA -->|azuremonitor exporter| AI["Azure Application Insights"]
-    Portal["Azure Monitor > Dashboards with Grafana (free)"] --> AI
+    Portal["Azure Monitor > Dashboards with Grafana"] --> AI
 ```
 
 ### 1. Provision App Insights (if you haven't)
@@ -359,7 +359,7 @@ Or remove everything: `./azure/teardown-azure.ps1 -ResourceGroup rg-ghcp-otel`.
 
 ---
 
-## Option D — Grafana Cloud (nothing runs locally, $0)
+## Option D — Grafana Cloud (nothing runs locally)
 
 Point the surfaces straight at Grafana Cloud's managed OTLP endpoint. No Docker, no collector, no
 Azure — traces go to Grafana Cloud's managed Tempo and you use TraceQL there.
@@ -369,7 +369,7 @@ flowchart LR
     VS["VS Code / Copilot CLI"] -->|OTLP/HTTP + Basic auth| GC["Grafana Cloud<br/>(managed Tempo + Grafana)"]
 ```
 
-### 1. Create a free Grafana Cloud stack
+### 1. Create a Grafana Cloud stack
 
 Sign up at [grafana.com](https://grafana.com/). In the Grafana Cloud Portal, open your stack →
 **Configure** on the **OpenTelemetry** tile → generate a token. It shows ready-made
@@ -456,7 +456,7 @@ Each section maps to a beat in a longread on Copilot observability:
 
 1. **Why** — prompt-cache efficiency as a leading indicator of prompt stability and cost.
 2. **What** — the surfaces (VS Code, CLI) and the shared GenAI conventions.
-3. **How** — four backends from a laptop ($0, offline) to a fleet-ready cloud endpoint.
+3. **How** — four backends from a laptop (offline) to a fleet-ready cloud endpoint.
 4. **See it** — one surface-aware dashboard, TraceQL and KQL variants, side-by-side VS Code vs CLI.
 5. **Scale it** — collector fan-out/redaction and Intune-managed rollout.
 
@@ -498,7 +498,7 @@ so it needs **no consent/GDPR banner**. Telemetry goes to *our own* Application 
   [samueltauil/copilot-traces](https://github.com/samueltauil/copilot-traces) and the article
   [Visualizing Copilot Prompt Cache with OTel + Grafana](https://samueltauil.github.io/github-copilot/devops/2026/07/02/visualizing-copilot-prompt-cache-otel-grafana.html).
 - This fork extends it to the Copilot **CLI** alongside VS Code — the two OTel-emitting surfaces — with
-  surface-aware dashboards, and adds the free **Azure Monitor "Dashboards with Grafana"** variant (Option B), an **Azure
+  surface-aware dashboards, and adds the **Azure Monitor "Dashboards with Grafana"** variant (Option B), an **Azure
   Container Apps** scale-to-zero collector (Option C), and a **Grafana Cloud** direct path (Option D).
 - Licensed under [MIT](LICENSE).
 

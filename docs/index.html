@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>copilot-opentelemetry · OpenTelemetry for GitHub Copilot</title>
-<meta name="description" content="Turn GitHub Copilot's OpenTelemetry into one Grafana dashboard — prompt-cache hit rate, tokens, latency and tool calls — across VS Code and the CLI. $0 to start." />
+<meta name="description" content="Turn GitHub Copilot's OpenTelemetry into one Grafana dashboard — prompt-cache hit rate, tokens, latency and tool calls — across VS Code and the CLI. Local or cloud." />
 <meta name="author" content="Maxim Salnikov" />
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
 <meta name="googlebot" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
@@ -16,7 +16,7 @@
 <meta property="og:site_name" content="copilot-opentelemetry" />
 <meta property="og:locale" content="en_US" />
 <meta property="og:title" content="You can't tune what you can't see — OpenTelemetry for GitHub Copilot" />
-<meta property="og:description" content="Prompt-cache observability for GitHub Copilot across VS Code and the CLI, on one Grafana dashboard. $0 to start." />
+<meta property="og:description" content="Prompt-cache observability for GitHub Copilot across VS Code and the CLI, on one Grafana dashboard. Local or cloud." />
 <meta property="og:url" content="https://copilot-opentelemetry.isainative.dev/" />
 <meta property="og:image" content="https://copilot-opentelemetry.isainative.dev/images/article-cover.png" />
 <meta property="og:image:type" content="image/png" />
@@ -28,7 +28,7 @@
 <meta name="twitter:site" content="@webmaxru" />
 <meta name="twitter:creator" content="@webmaxru" />
 <meta name="twitter:title" content="You can't tune what you can't see — OpenTelemetry for GitHub Copilot" />
-<meta name="twitter:description" content="Prompt-cache observability for GitHub Copilot across VS Code and the CLI, on one Grafana dashboard. $0 to start." />
+<meta name="twitter:description" content="Prompt-cache observability for GitHub Copilot across VS Code and the CLI, on one Grafana dashboard. Local or cloud." />
 <meta name="twitter:image" content="https://copilot-opentelemetry.isainative.dev/images/article-cover.png" />
 <meta name="twitter:image:alt" content="OpenTelemetry for GitHub Copilot — a Grafana dashboard of prompt-cache hits and misses across VS Code and the CLI." />
 <link rel="icon" href="favicon.ico" sizes="32x32" />
@@ -65,7 +65,7 @@
       "@type": "SoftwareSourceCode",
       "@id": "https://copilot-opentelemetry.isainative.dev/#project",
       "name": "copilot-opentelemetry",
-      "description": "Turn GitHub Copilot's OpenTelemetry into one Grafana dashboard — prompt-cache hit rate, tokens, latency and tool calls — across VS Code and the CLI. Runs locally for $0 and scales to a fleet via Azure or Grafana Cloud.",
+      "description": "Turn GitHub Copilot's OpenTelemetry into one Grafana dashboard — prompt-cache hit rate, tokens, latency and tool calls — across VS Code and the CLI. Runs locally or scales to a fleet via Azure or Grafana Cloud.",
       "url": "https://copilot-opentelemetry.isainative.dev/",
       "codeRepository": "https://github.com/webmaxru/copilot-opentelemetry",
       "programmingLanguage": ["YAML", "PowerShell", "HTML"],
@@ -273,7 +273,7 @@
     <h1>You can't tune<br>what you can't <span class="see">see</span>.</h1>
     <p class="lede">Turn GitHub Copilot's OpenTelemetry into <b>one Grafana dashboard</b> —
       prompt‑cache hit rate, tokens, latency and tools — across <b>VS Code</b> and <b>the CLI</b>.
-      Runs on your laptop for <b>$0</b>; scales to a fleet.</p>
+      Runs on your laptop; scales to a fleet.</p>
     <div class="cta-row">
       <a class="btn primary" href="https://github.com/webmaxru/copilot-opentelemetry">View on GitHub →</a>
     </div>
@@ -394,10 +394,10 @@
           Cloud. None of them needs a paid Grafana instance.</p>
       </div>
       <div class="grid4">
-        <div class="bcard"><div class="tag">A</div><h3>Local</h3><p>Docker: Grafana Tempo + Grafana. Offline, private.</p><div class="cost">$0</div></div>
-        <div class="bcard"><div class="tag">B</div><h3>Azure · local collector</h3><p>Collector fans out to Tempo <em>and</em> Application Insights.</p><div class="cost">~$0</div></div>
-        <div class="bcard"><div class="tag">C</div><h3>Azure Container Apps</h3><p>Cloud collector, scale‑to‑zero. Nothing runs locally.</p><div class="cost">~$0 idle</div></div>
-        <div class="bcard"><div class="tag">D</div><h3>Grafana Cloud</h3><p>Point straight at managed Tempo. Nothing to run.</p><div class="cost">free tier</div></div>
+        <div class="bcard"><div class="tag">A</div><h3>Local</h3><p>Docker: Grafana Tempo + Grafana. Offline, private.</p><div class="cost">Free · local</div></div>
+        <div class="bcard"><div class="tag">B</div><h3>Azure · local collector</h3><p>Collector fans out to Tempo <em>and</em> Application Insights.</p><div class="cost">Azure metered</div></div>
+        <div class="bcard"><div class="tag">C</div><h3>Azure Container Apps</h3><p>Cloud collector, scale‑to‑zero. Nothing runs locally.</p><div class="cost">Scale-to-zero</div></div>
+        <div class="bcard"><div class="tag">D</div><h3>Grafana Cloud</h3><p>Point straight at managed Tempo. Nothing to run.</p><div class="cost">Free tier</div></div>
       </div>
     </div>
   </section>
